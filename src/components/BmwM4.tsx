@@ -17,7 +17,6 @@ export default function BmwM4() {
   const interiorMode = useStore((s) => s.interiorMode)
   const roofHidden = useStore((s) => s.roofHidden)
 
-  const originalRaycast = useRef<WeakMap<THREE.Mesh, THREE.Mesh['raycast']>>(new WeakMap())
   const prevColors = useRef<Record<PartId, string>>({
     seat_driver: '', seat_passenger: '', steering: '', dashboard: '',
     door_left: '', door_right: '', console: '', screen_frame: '', body_paint: '',
@@ -28,7 +27,6 @@ export default function BmwM4() {
   const {
     normalized,
     paintMats,
-    shellMeshes,
     roofMeshes,
     glassMeshes,
     interiorMeshes,
@@ -46,7 +44,6 @@ export default function BmwM4() {
     cloned.position.set(-center.x, -box.min.y, -center.z)
 
     const paintMats = new Set<THREE.Material>()
-    const shellMeshes = new Set<THREE.Mesh>()
     const roofMeshes = new Set<THREE.Mesh>()
     const glassMeshes = new Set<THREE.Mesh>()
     const interiorMeshes = new Set<THREE.Mesh>()
@@ -66,18 +63,6 @@ export default function BmwM4() {
     const isPaintMat = (name: string) => paintKeywords.some((k) => name.includes(k))
     const isGlassMat = (name: string) => name.includes('GlassClear')
 
-    const shellNodeNames = new Set([
-      'M4xNME_body', 'M4xNME_hood_csl', 'M4xNME_trunk_csl',
-      'M4xNME_door_FL', 'M4xNME_door_FR',
-      'M4xNME_fender_L', 'M4xNME_fender_R',
-      'M4xNME_bumper_F', 'M4xNME_bumper_R',
-      'M4xNME_sideskirt', 'M4xNME_sideskirtline_csl',
-      'M4xNME_splitter_F_csl', 'M4xNME_diffuser_csl',
-      'M4xNME_diffuserline_csl', 'M4xNME_bumperline_R_csl',
-      'M4xNME_grille_F_csl', 'M4xNME_tailgatelight_csl',
-      'M4xNME_taillight_L_csl', 'M4xNME_taillight_R_csl',
-    ])
-
     const roofNodeNames = new Set([
       'M4xNME_roof_carbon', 'M4xNME_roofline_csl',
     ])
@@ -94,12 +79,11 @@ export default function BmwM4() {
 
     cloned.traverse((obj) => {
       if (!(obj instanceof THREE.Mesh)) return
-      const nodeName = obj.name.replace(/_.*$/m, '')
+      const nodeName = obj.name.replace(/_M4xNME_.*$/, '')
       const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
 
       // shadow 策略：BMW 模型 mesh 数量多，为避免低端设备卡顿，统一关闭实时阴影
       // 车身仍保留环境光 + 环境贴图反射，视觉上不会太平
-      const isShell = shellNodeNames.has(obj.name) || shellNodeNames.has(nodeName)
       const isRoof = roofNodeNames.has(obj.name) || roofNodeNames.has(nodeName)
       const isGlass = mats.some((m) => isGlassMat(m.name))
       const partId = partIdMap[obj.name] || partIdMap[nodeName]
@@ -107,9 +91,7 @@ export default function BmwM4() {
       obj.castShadow = false
       obj.receiveShadow = false
 
-      if (isShell) {
-        shellMeshes.add(obj)
-      } else if (isRoof) {
+      if (isRoof) {
         roofMeshes.add(obj)
       }
 
@@ -144,7 +126,6 @@ export default function BmwM4() {
     return {
       normalized: cloned,
       paintMats,
-      shellMeshes,
       roofMeshes,
       glassMeshes,
       interiorMeshes,
@@ -220,44 +201,8 @@ export default function BmwM4() {
     }
   }, [normalized])
 
-  // 内饰模式：车身外壳变幽灵且不可点选
-  useEffect(() => {
-    const setGhost = (mesh: THREE.Mesh, ghost: boolean) => {
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-      mats.forEach((m) => {
-        const mat = m as THREE.MeshStandardMaterial
-        if (ghost) {
-          mat.transparent = true
-          mat.opacity = 0.12
-          mat.depthWrite = false
-        } else {
-          mat.transparent = false
-          mat.opacity = 1
-          mat.depthWrite = true
-        }
-      })
-      if (ghost) {
-        if (!originalRaycast.current.has(mesh)) {
-          originalRaycast.current.set(mesh, mesh.raycast)
-        }
-        mesh.raycast = () => undefined
-      } else {
-        const orig = originalRaycast.current.get(mesh)
-        if (orig) mesh.raycast = orig
-      }
-    }
-
-    shellMeshes.forEach((mesh) => setGhost(mesh, interiorMode))
-    glassMeshes.forEach((mesh) => {
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-      mats.forEach((m) => {
-        const mat = m as THREE.MeshStandardMaterial
-        mat.transparent = true
-        mat.opacity = interiorMode ? 0.15 : 0.7
-        mat.depthWrite = false
-      })
-    })
-  }, [interiorMode, shellMeshes, glassMeshes])
+  // BMW 内饰模式：仅掀开车顶 + 显示内饰，车身外壳与玻璃保持原样（用户要求去顶而非改玻璃）。
+  // 不再将车身做半透明幽灵化，避免整车内透、也避免改动玻璃观感；从敞开的车顶俯视即可看内饰。
 
   const onClick = useCallback((e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
