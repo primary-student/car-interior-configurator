@@ -221,11 +221,40 @@ const Panel = memo(function Panel() {
   )
 })
 
+/** 监听 CSS media query 匹配状态 */
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches)
+  useEffect(() => {
+    const mql = window.matchMedia(query)
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [query])
+  return matches
+}
+
 export default function App() {
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const [panelOpen, setPanelOpen] = useState(!isMobile)
+
+  useEffect(() => {
+    setPanelOpen(!isMobile)
+  }, [isMobile])
+
   return (
     <div className="app">
       <Scene />
-      <Panel />
+      <button
+        className="panel-toggle"
+        aria-label="切换配置面板"
+        aria-expanded={panelOpen}
+        onClick={() => setPanelOpen((v) => !v)}
+      >
+        {panelOpen ? '✕' : '☰'}
+      </button>
+      <div className={`panel-outer ${panelOpen ? 'panel-open' : 'panel-closed'} ${isMobile ? 'panel-mobile' : ''}`}>
+        <Panel />
+      </div>
     </div>
   )
 }
