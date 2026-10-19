@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>候选车型预览</title>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3/dist/model-viewer.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      background: #4a4e54;
+      color: #222;
+      padding: 24px;
+    }
+    h1 { color: #fff; font-size: 22px; margin-bottom: 4px; }
+    .tip { color: #d8dade; font-size: 13px; margin-bottom: 20px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+    }
+    model-viewer {
+      width: 100%;
+      height: 300px;
+      background: radial-gradient(ellipse at 50% 40%, #f2f3f5 0%, #c9ccd1 80%);
+    }
+    .info { padding: 12px 16px 14px; }
+    .info h2 { font-size: 16px; }
+    .info p { font-size: 12px; color: #777; margin-top: 4px; }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #e6f3ff;
+      color: #1677c9;
+      margin-top: 6px;
+      margin-right: 6px;
+    }
+    .tag.cc0 { background: #e8f7ec; color: #1a7f37; }
+  </style>
+</head>
+<body>
+  <h1>候选车型预览（6 台）</h1>
+  <p class="tip">拖拽旋转 · 滚轮缩放。看好哪台告诉我编号/名字，我接入配置器。均为低多边形风格，免费可商用。</p>
+  <div class="grid">
+    <div class="card">
+      <model-viewer src="/models/candidates/sedan-quaternius.glb" camera-controls auto-rotate auto-rotate-delay="0" shadow-intensity="1" exposure="1"></model-viewer>
+      <div class="info">
+        <h2>① 轿车 Sedan</h2>
+        <p>作者：Quaternius · 最常见的家用三厢轿车造型</p>
+        <span class="tag cc0">CC0 免署名</span>
+      </div>
+    </div>
+    <div class="card">
+      <model-viewer src="/models/candidates/suv-quaternius.glb" camera-controls auto-rotate auto-rotate-delay="0" shadow-intensity="1" exposure="1"></model-viewer>
+      <div class="info">
+        <h2>② SUV</h2>
+        <p>作者：Quaternius · 高车身城市 SUV</p>
+        <span class="tag cc0">CC0 免署名</span>
+      </div>
+    </div>
+    <div class="card">
+      <model-viewer src="/models/candidates/hatchback-kay.glb" camera-controls auto-rotate auto-rotate-delay="0" shadow-intensity="1" exposure="1"></model-viewer>
+      <div class="info">
+        <h2>③ 掀背车 Hatchback</h2>
+        <p>作者：Kay Lousberg · 小巧两厢车</p>
+        <span class="tag cc0">CC0 免署名</span>
+      </div>
+    </div>
+    <div class="card">
+      <model-viewer src="/models/candidates/wagon-kay.glb" camera-controls auto-rotate auto-rotate-delay="0" shadow-intensity="1" exposure="1"></model-viewer>
+      <div class="info">
+        <h2>④ 旅行车 Wagon</h2>
+        <p>作者：Kay Lousberg · 长后备箱旅行版</p>
+        <span class="tag cc0">CC0 免署名</span>
+      </div>
+    </div>
+    <div class="card">
+      <model-viewer src="/models/candidates/taxi-google.glb" camera-controls auto-rotate auto-rotate-delay="0" shadow-intensity="1" exposure="1"></model-viewer>
+      <div class="info">
+        <h2>⑤ 出租车 Taxi</h2>
+        <p>作者：Poly by Google · 带顶灯的出租轿车</p>
+        <span class="tag">CC-BY 需署名</span>
+      </div>
+    </div>
+    <div class="card">
+      <model-viewer src="/models/candidates/sports-quaternius.glb" camera-controls auto-rotate auto-rotate-delay="0" shadow-intensity="1" exposure="1"></model-viewer>
+      <div class="info">
+        <h2>⑥ 跑车 Sports Car</h2>
+        <p>作者：Quaternius · 双门跑车（对比用，不算"普通"）</p>
+        <span class="tag cc0">CC0 免署名</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
