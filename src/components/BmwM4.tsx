@@ -8,9 +8,12 @@ import { useStore, type PartId } from '../store'
  *  天然分层：车身/车顶/车门/座椅/方向盘/仪表台/中控台均为独立 mesh。
  */
 const MODEL_URL = `${import.meta.env.BASE_URL}models/bmw-m4-csl.glb`
+// draco 解码器本地化：模型已用 gltf-transform 做 draco 压缩（2.0MB，比原 3.4MB 小 41%），
+// 解码器放在 public/draco/，避免依赖 gstatic CDN，国内访问稳定。
+const DRACO_PATH = `${import.meta.env.BASE_URL}draco/`
 
 export default function BmwM4() {
-  const { scene } = useGLTF(MODEL_URL)
+  const { scene } = useGLTF(MODEL_URL, DRACO_PATH)
   const colors = useStore((s) => s.colors)
   const selected = useStore((s) => s.selected)
   const select = useStore((s) => s.select)

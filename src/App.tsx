@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { ContactShadows, Environment, Html, Lightformer, OrbitControls, PerformanceMonitor, Stats } from '@react-three/drei'
+import { ContactShadows, Environment, Html, Lightformer, OrbitControls, PerformanceMonitor, Stats, useGLTF } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { Cockpit } from './components/Cockpit'
 import { CarBody } from './components/CarBody'
@@ -10,6 +10,9 @@ import { PALETTE, PAINT_PALETTE, PART_NAMES, PRESETS, useStore, type PartId } fr
 // 按需加载重型 GLB 组件，避免首屏同时拉取多个模型
 const ConceptCar = lazy(() => import('./components/ConceptCar'))
 const BmwM4 = lazy(() => import('./components/BmwM4'))
+
+// BMW 模型带 meshopt 压缩，URL 与 BmwM4 组件内一致，预加载可命中同一缓存
+const BMW_MODEL_URL = `${import.meta.env.BASE_URL}models/bmw-m4-csl.glb`
 
 function Scene() {
   const view = useStore((s) => s.view)
@@ -247,10 +250,24 @@ function useMediaQuery(query: string) {
 export default function App() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [panelOpen, setPanelOpen] = useState(!isMobile)
+  const view = useStore((s) => s.view)
 
   useEffect(() => {
     setPanelOpen(!isMobile)
   }, [isMobile])
+
+  // 非 BMW 视图时，趁浏览器空闲预加载 BMW 模型（默认启用 meshopt 解码），
+  // 这样用户点 BMW 时模型已缓存，几乎是秒出，不再有漫长加载。
+  useEffect(() => {
+    if (view === 'bmw') return
+    const w = window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    if (!w.requestIdleCallback) return
+    const id = w.requestIdleCallback(() => { useGLTF.preload(BMW_MODEL_URL, `${import.meta.env.BASE_URL}draco/`) }, { timeout: 4000 })
+    return () => w.cancelIdleCallback?.(id)
+  }, [view])
 
   return (
     <div className="app">
