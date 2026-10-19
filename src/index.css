@@ -119,3 +119,40 @@ body {
 }
 .swatch:hover { transform: scale(1.1); }
 .swatch.active { border-color: #3fa9f5; transform: scale(1.1); }
+
+/* ---- 移动端适配 ---- */
+@media (max-width: 768px) {
+  .panel {
+    width: 220px;
+    padding: 16px 12px;
+  }
+  .panel h1 { font-size: 17px; }
+  .panel .hint { font-size: 11px; }
+  .section { margin-top: 16px; }
+  .section h2 {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .presets button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .part {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .part .dot {
+    width: 10px;
+    height: 10px;
+  }
+  .swatch {
+    width: 28px;
+    height: 28px;
+  }
+  .credit { margin-top: 18px; font-size: 10px; }
+}
+
+@media (max-width: 380px) {
+  .panel { width: 180px; }
+  .parts { grid-template-columns: 1fr; }
+}

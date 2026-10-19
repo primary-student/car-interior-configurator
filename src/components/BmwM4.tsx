@@ -7,8 +7,10 @@ import { useStore, type PartId } from '../store'
 /** BMW M4 CSL 分层 GLB（CC BY 4.0）
  *  天然分层：车身/车顶/车门/座椅/方向盘/仪表台/中控台均为独立 mesh。
  */
+const MODEL_URL = `${import.meta.env.BASE_URL}models/bmw-m4-csl.glb`
+
 export default function BmwM4() {
-  const { scene } = useGLTF('/models/bmw-m4-csl.glb')
+  const { scene } = useGLTF(MODEL_URL)
   const colors = useStore((s) => s.colors)
   const selected = useStore((s) => s.selected)
   const select = useStore((s) => s.select)

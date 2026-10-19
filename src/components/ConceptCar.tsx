@@ -11,8 +11,10 @@ const NON_PAINT = new Set(['Windows', 'Black', 'Grey', 'Headlights', 'TailLights
  *  该车是单 mesh 外壳，没有独立车顶/内饰网格。
  *  内饰模式直接隐藏整个外壳+车窗，露出叠加的程序化座舱。
  */
+const MODEL_URL = `${import.meta.env.BASE_URL}models/sedan.glb`
+
 export default function ConceptCar() {
-  const { scene } = useGLTF('/models/sedan.glb')
+  const { scene } = useGLTF(MODEL_URL)
   const colors = useStore((s) => s.colors)
   const selected = useStore((s) => s.selected)
   const select = useStore((s) => s.select)
