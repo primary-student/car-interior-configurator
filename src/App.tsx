@@ -4,6 +4,7 @@ import { ContactShadows, Environment, Html, Lightformer, OrbitControls, Performa
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { Cockpit } from './components/Cockpit'
 import { CarBody } from './components/CarBody'
+import { ModelErrorBoundary } from './components/ModelErrorBoundary'
 import { PALETTE, PAINT_PALETTE, PART_NAMES, PRESETS, useStore, type PartId } from './store'
 
 // 按需加载重型 GLB 组件，避免首屏同时拉取多个模型
@@ -54,17 +55,21 @@ function Scene() {
           <Cockpit />
         </>
       ) : view === 'concept' ? (
-        <Suspense fallback={<Html center><div className="loading">轿车模型加载中…</div></Html>}>
-          <ConceptCar />
-          {/* GLB 轿车是单 mesh 空壳，内饰模式叠加程序化座舱 */}
-          <group visible={interiorMode} position={[0, 0, -0.12]} scale={[0.9, 0.95, 0.9]}>
-            <Cockpit />
-          </group>
-        </Suspense>
+        <ModelErrorBoundary label="轿车（GLB）模型加载失败，请检查网络">
+          <Suspense fallback={<Html center><div className="loading">轿车模型加载中…</div></Html>}>
+            <ConceptCar />
+            {/* GLB 轿车是单 mesh 空壳，内饰模式叠加程序化座舱 */}
+            <group visible={interiorMode} position={[0, 0, -0.12]} scale={[0.9, 0.95, 0.9]}>
+              <Cockpit />
+            </group>
+          </Suspense>
+        </ModelErrorBoundary>
       ) : (
-        <Suspense fallback={<Html center><div className="loading">BMW M4 分层模型加载中…</div></Html>}>
-          <BmwM4 />
-        </Suspense>
+        <ModelErrorBoundary label="BMW M4 分层模型加载失败，请检查网络">
+          <Suspense fallback={<Html center><div className="loading">BMW M4 分层模型加载中…</div></Html>}>
+            <BmwM4 />
+          </Suspense>
+        </ModelErrorBoundary>
       )}
       {/* 程序化车身需要地面阴影才有展台感；GLB 模型自带真实阴影，关闭 ContactShadows 节省开销 */}
       {view === 'sedan' && (

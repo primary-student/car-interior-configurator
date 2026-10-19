@@ -78,6 +78,20 @@ body {
 /* GLB 加载提示 */
 .loading { color: #cfd2d6; font-size: 14px; white-space: nowrap; }
 
+/* GLB 加载失败兜底提示 */
+.model-error {
+  background: rgba(40, 24, 24, 0.92);
+  border: 1px solid #6b3a3a;
+  border-radius: 12px;
+  padding: 16px 22px;
+  text-align: center;
+  color: #f0d6d6;
+  white-space: nowrap;
+  user-select: none;
+}
+.model-error-title { font-size: 15px; font-weight: 600; }
+.model-error-sub { font-size: 12px; margin-top: 6px; color: #d8b8b8; }
+
 /* 模型版权署名 */
 .credit { margin-top: 28px; font-size: 11px; color: #61666c; line-height: 1.6; }
 
