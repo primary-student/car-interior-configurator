@@ -194,11 +194,13 @@ export default function BmwM4() {
     prevSelected.current = selected
   }, [selected, paintMats, partMaterials])
 
-  // 车顶隐藏
+  // 车顶/玻璃可见性：隐藏车顶开关 或 内饰模式 → 自动去顶，便于看内饰
   useEffect(() => {
-    roofMeshes.forEach((mesh) => { mesh.visible = !roofHidden })
+    const topOpen = roofHidden || interiorMode
+    roofMeshes.forEach((mesh) => { mesh.visible = !topOpen })
+    // 玻璃仅在「隐藏车顶」开关时隐藏；内饰模式下保留半透明玻璃，从敞篷口看进去更自然
     glassMeshes.forEach((mesh) => { mesh.visible = !roofHidden })
-  }, [roofHidden, roofMeshes, glassMeshes])
+  }, [roofHidden, interiorMode, roofMeshes, glassMeshes])
 
   // 内饰件按需显示：外观模式隐藏内部细节以提升性能；内饰模式显示
   useEffect(() => {
@@ -247,7 +249,6 @@ export default function BmwM4() {
 
     shellMeshes.forEach((mesh) => setGhost(mesh, interiorMode))
     glassMeshes.forEach((mesh) => {
-      mesh.visible = true
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       mats.forEach((m) => {
         const mat = m as THREE.MeshStandardMaterial

@@ -90,7 +90,13 @@ function OrbitControlsTarget() {
   useEffect(() => {
     const controls = controlsRef.current
     if (!controls) return
-    if (interiorMode) {
+    if (view === 'bmw' && interiorMode) {
+      // BMW 内饰：去顶后俯视进舱
+      controls.object.position.set(0.9, 2.2, 2.6)
+      controls.target.set(0, 0.55, 0)
+      controls.minDistance = 0.5
+      controls.maxDistance = 5
+    } else if (interiorMode) {
       controls.object.position.set(0.55, 1.55, 1.7)
       controls.target.set(0, 0.85, 0.1)
       controls.minDistance = 0.4
