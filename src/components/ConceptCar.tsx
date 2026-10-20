@@ -18,6 +18,13 @@ export default function ConceptCar() {
   const colors = useStore((s) => s.colors)
   const select = useStore((s) => s.select)
   const interiorMode = useStore((s) => s.interiorMode)
+  const setSceneReady = useStore((s) => s.setSceneReady)
+
+  // 模型已挂载（Suspense 已 resolve）→ 通知外层收起加载提示
+  useEffect(() => {
+    setSceneReady(true)
+    return () => setSceneReady(false)
+  }, [setSceneReady])
 
   const originalRaycast = useRef<WeakMap<THREE.Mesh, THREE.Mesh['raycast']>>(new WeakMap())
   const prevColor = useRef<string>('')

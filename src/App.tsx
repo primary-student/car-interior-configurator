@@ -1,12 +1,11 @@
 import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, Environment, Html, Lightformer, OrbitControls, PerformanceMonitor, Stats, useGLTF } from '@react-three/drei'
+import { Environment, Lightformer, OrbitControls, PerformanceMonitor, Stats, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three-stdlib'
 import { peek } from 'suspend-react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { Cockpit } from './components/Cockpit'
-import { CarBody } from './components/CarBody'
 import { ModelErrorBoundary } from './components/ModelErrorBoundary'
 import { PALETTE, PAINT_PALETTE, PART_NAMES, PRESETS, useStore, type PartId } from './store'
 
@@ -75,14 +74,9 @@ function Scene() {
         <meshStandardMaterial color="#3b3e43" roughness={0.95} metalness={0} />
       </mesh>
 
-      {view === 'sedan' ? (
-        <>
-          <CarBody />
-          <Cockpit />
-        </>
-      ) : view === 'concept' ? (
+      {view === 'concept' ? (
         <ModelErrorBoundary label="轿车（GLB）模型加载失败，请检查网络">
-          <Suspense fallback={<Html center><div className="loading">轿车模型加载中…</div></Html>}>
+          <Suspense fallback={null}>
             <ConceptCar />
             {/* GLB 轿车是单 mesh 空壳，内饰模式叠加程序化座舱 */}
             <group visible={interiorMode} position={[0, 0, -0.12]} scale={[0.9, 0.95, 0.9]}>
@@ -92,14 +86,10 @@ function Scene() {
         </ModelErrorBoundary>
       ) : (
         <ModelErrorBoundary label="BMW M4 分层模型加载失败，请检查网络">
-          <Suspense fallback={<Html center><div className="loading">BMW M4 分层模型加载中…</div></Html>}>
+          <Suspense fallback={null}>
             <BmwM4 />
           </Suspense>
         </ModelErrorBoundary>
-      )}
-      {/* 程序化车身需要地面阴影才有展台感；GLB 模型自带真实阴影，关闭 ContactShadows 节省开销 */}
-      {view === 'sedan' && (
-        <ContactShadows position={[0, 0.02, 0]} opacity={0.5} scale={9} blur={2.5} far={9} />
       )}
 
       <OrbitControlsTarget />
@@ -316,7 +306,6 @@ const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
 
   const palette = selected === 'body_paint' ? PAINT_PALETTE : PALETTE
   const partIds = (Object.keys(PART_NAMES) as PartId[]).filter((id) => {
-    if (view === 'sedan') return true
     if (view === 'concept') return interiorMode ? id !== 'body_paint' : id === 'body_paint'
     return true
   })
@@ -334,11 +323,10 @@ const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
       <div className="section">
         <h2>车型</h2>
         <div className="presets">
-          <button className={view === 'sedan' ? 'view-active' : ''} onClick={() => setView('sedan')}>轿车（程序化）</button>
           <button className={view === 'concept' ? 'view-active' : ''} onClick={() => setView('concept')}>轿车（GLB）</button>
-          <button className={view === 'bmw' ? 'view-active' : ''} onClick={() => setView('bmw')}>BMW M4（分层）</button>
+          <button className={view === 'bmw' ? 'view-active' : ''} onClick={() => setView('bmw')}>BMW M4</button>
         </div>
-        {!bmwReady && <p className="hint bmw-hint">BMW 模型后台下载中…（进网站即开始，稍后切换即秒出）</p>}
+        {!bmwReady && <p className="hint bmw-hint">BMW 模型加载中…（约 2 MB，之后走浏览器缓存）</p>}
       </div>
 
       <div className="section">
@@ -419,6 +407,19 @@ function useMediaQuery(query: string) {
   return matches
 }
 
+/** 画布加载提示：放在 Canvas 外层做 DOM 覆盖层，避免在 R3F 树里用 drei Html 引发 removeChild 冲突 */
+const SceneLoading = memo(function SceneLoading() {
+  const view = useStore((s) => s.view)
+  const sceneReady = useStore((s) => s.sceneReady)
+  if (sceneReady) return null
+  return (
+    <div className="scene-loading">
+      <span className="scene-loading-dot" />
+      {view === 'bmw' ? 'BMW M4 模型加载中…' : '轿车模型加载中…'}
+    </div>
+  )
+})
+
 export default function App() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [panelOpen, setPanelOpen] = useState(!isMobile)
@@ -447,7 +448,10 @@ export default function App() {
 
   return (
     <div className="app">
-      <Scene />
+      <div className="viewport">
+        <Scene />
+        <SceneLoading />
+      </div>
       <button
         className="panel-toggle"
         aria-label="切换配置面板"

@@ -77,7 +77,7 @@ export const PRESETS: { name: string; colors: Record<PartId, string> }[] = [
   },
 ]
 
-export type ViewMode = 'sedan' | 'concept' | 'bmw'
+export type ViewMode = 'concept' | 'bmw'
 
 /** BMW 模型归一化后计算出的相机锚点（坐在驾驶位向前看） */
 export interface BmwAnchors {
@@ -92,27 +92,32 @@ interface ConfiguratorState {
   colors: Record<PartId, string>
   view: ViewMode
   interiorMode: boolean
+  /** 当前车型的 3D 模型是否已挂载完成（用于 canvas 外的加载提示，避免在 Canvas 内用 drei Html 引发 removeChild 冲突） */
+  sceneReady: boolean
   bmwAnchors: BmwAnchors | null
   select: (p: PartId | null) => void
   setColor: (p: PartId, color: string) => void
   applyPreset: (colors: Record<PartId, string>) => void
   setView: (v: ViewMode) => void
   setInteriorMode: (v: boolean) => void
+  setSceneReady: (v: boolean) => void
   setBmwAnchors: (a: BmwAnchors | null) => void
 }
 
 export const useStore = create<ConfiguratorState>((set) => ({
   selected: null,
   colors: DEFAULT_COLORS,
-  view: 'sedan',
+  view: 'bmw',
   interiorMode: false,
+  sceneReady: false,
   bmwAnchors: null,
   select: (p) => set({ selected: p }),
   setColor: (p, color) =>
     set((s) => ({ colors: { ...s.colors, [p]: color } })),
   applyPreset: (colors) => set({ colors }),
-  setView: (v) => set({ view: v, selected: null, interiorMode: false }),
+  setView: (v) => set({ view: v, selected: null, interiorMode: false, sceneReady: false }),
   setInteriorMode: (v) =>
     set({ interiorMode: v, selected: v ? 'seat_driver' : null }),
+  setSceneReady: (v) => set({ sceneReady: v }),
   setBmwAnchors: (a) => set({ bmwAnchors: a }),
 }))

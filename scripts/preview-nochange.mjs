@@ -1,7 +1,9 @@
 /**
- * 验证「点击部件后 3D 视图零变化」。
- * 只截 canvas 元素（右侧面板是 flex 兄弟节点，天然排除在截图外），
- * 点击部件前后做像素级对比，差异像素数必须为 0。
+ * 验证：
+ * 1. 首页默认就是 BMW 模型（车型列表已无「轿车（程序化）」）
+ * 2. 点击部件后 3D 视图零变化（canvas 像素级 diff）
+ * 3. 换色仍然生效
+ * 只截 #root canvas（右侧面板是 flex 兄弟节点，天然排除在截图外）。
  */
 import { chromium } from 'playwright-core'
 import http from 'node:http'
@@ -13,7 +15,7 @@ const PREFIX = '/car-interior-configurator'
 const SRC = path.resolve('dist')
 const OUT = process.cwd() + '/pv'
 const EXE = 'C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1248\\chrome-win64\\chrome.exe'
-const PORT = 8911
+const PORT = 8913
 fs.mkdirSync(OUT, { recursive: true })
 const tag = process.argv[2] || 'run'
 const log = (...a) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...a)
@@ -38,7 +40,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r))
 log('static server on', PORT)
 
-/** 最小 PNG 解码（8bit，非隔行），返回 RGBA/RGB 像素 */
+/** 最小 PNG 解码（8bit，非隔行） */
 function decodePNG(buf) {
   let pos = 8
   let width = 0, height = 0, bitDepth = 8, colorType = 6
@@ -84,7 +86,7 @@ function decodePNG(buf) {
   return { width, height, channels, data: out }
 }
 
-/** 像素比较：返回差异像素数与最大通道差；跳过左上角 Stats 帧率面板（数字每帧都在变） */
+/** 像素比较；跳过左上角 Stats 帧率面板（数字每帧都在变） */
 const HUD = { x: 0, y: 0, w: 140, h: 70 }
 function diffPNG(bufA, bufB) {
   const A = decodePNG(bufA), B = decodePNG(bufB)
@@ -128,29 +130,42 @@ async function canvasShot(name) {
 }
 
 const results = []
+function assert(label, ok, note = '') {
+  results.push({ label, ok })
+  log(`${ok ? 'PASS' : 'FAIL'} ${label}${note ? ' — ' + note : ''}`)
+}
 function check(label, a, b) {
   const d = diffPNG(a, b)
-  if (d.sizeMismatch) { results.push({ label, ok: false, note: d.sizeMismatch }); log('FAIL', label, d.sizeMismatch); return }
-  const ok = d.changed === 0
-  results.push({ label, ok, changed: d.changed, maxD: d.maxD, pixels: d.pixels })
-  log(`${ok ? 'PASS' : 'FAIL'} ${label} → 差异像素 ${d.changed}/${d.pixels}（最大通道差 ${d.maxD}）`)
+  if (d.sizeMismatch) { assert(label, false, d.sizeMismatch); return }
+  assert(label, d.changed === 0, `差异像素 ${d.changed}/${d.pixels}，最大通道差 ${d.maxD}`)
 }
 
 log('goto')
 await page.goto(`http://127.0.0.1:${PORT}${PREFIX}/`, { waitUntil: 'load', timeout: 60000 })
-await page.waitForSelector('button:has-text("BMW M4（分层）")', { timeout: 60000 })
-await page.waitForTimeout(1500)
 
-// ---------- BMW ----------
-log('click BMW')
-await page.click('button:has-text("BMW M4（分层）")')
+// ---- 1. 首页默认 BMW ----
+const sedanBtn = await page.locator('button:has-text("轿车（程序化）")').count()
+assert('车型列表已隐藏「轿车（程序化）」', sedanBtn === 0, `匹配到 ${sedanBtn} 个按钮`)
+
+const bmwBtn = page.locator('button:has-text("BMW M4")')
+await bmwBtn.waitFor({ timeout: 60000 })
+const bmwClass = (await bmwBtn.getAttribute('class')) || ''
+assert('首页默认选中 BMW', bmwClass.includes('view-active'), `class="${bmwClass}"`)
+
+// 等 BMW 模型加载完（Suspense 的「加载中」消失）
 await page.waitForFunction(
-  () => !(document.body.innerText || '').includes('加载中') && !(document.body.innerText || '').includes('后台下载中'),
-  { timeout: 180000, polling: 500 },
+  () => !(document.body.innerText || '').includes('加载中'),
+  { timeout: 180000, polling: 400 },
 )
 await page.waitForTimeout(3500)
-const bmwBase = await canvasShot('bmw-base')
+await canvasShot('home-bmw')
 
+const homeText = await page.evaluate(() => document.body.innerText)
+assert('首页无「加载中」残留', !homeText.includes('加载中'))
+assert('首页无程序化轿车字样', !homeText.includes('程序化'))
+
+// ---- 2. BMW 外观：点击零变化 ----
+const bmwBase = shots[shots.length - 1].buf
 await page.click('.part:has-text("车身漆面")')
 await page.waitForTimeout(1600)
 check('BMW 外观 · 选中车身漆面无变化', bmwBase, await canvasShot('bmw-sel-body'))
@@ -159,11 +174,11 @@ await page.click('.part:has-text("主驾座椅")')
 await page.waitForTimeout(1600)
 check('BMW 外观 · 选中主驾座椅无变化', bmwBase, await canvasShot('bmw-sel-seat'))
 
-await page.click('.part:has-text("主驾座椅")') // 取消选中
+await page.click('.part:has-text("主驾座椅")')
 await page.waitForTimeout(1400)
 check('BMW 外观 · 取消选中无变化', bmwBase, await canvasShot('bmw-deselect'))
 
-// 内饰视角（相机固定在座舱内，点击后不应有任何变化）
+// ---- 3. BMW 内饰：点击零变化 ----
 log('interior view')
 await page.click('button:has-text("内饰")')
 await page.waitForTimeout(4000)
@@ -175,19 +190,7 @@ await page.click('.part:has-text("中控台")')
 await page.waitForTimeout(1600)
 check('BMW 内饰 · 选中中控台无变化', bmwIntBase, await canvasShot('bmw-interior-console'))
 
-// ---------- 程序化轿车 ----------
-log('sedan')
-await page.click('button:has-text("轿车（程序化）")')
-await page.waitForTimeout(3000)
-const sedanBase = await canvasShot('sedan-base')
-await page.click('.part:has-text("车身漆面")')
-await page.waitForTimeout(1600)
-check('程序化轿车 · 选中车身漆面无变化', sedanBase, await canvasShot('sedan-sel-body'))
-await page.click('.part:has-text("方向盘")')
-await page.waitForTimeout(1600)
-check('程序化轿车 · 选中方向盘无变化', sedanBase, await canvasShot('sedan-sel-steering'))
-
-// ---------- GLB 轿车 ----------
+// ---- 4. GLB 轿车：点击零变化 + 换色回归 ----
 log('concept')
 await page.click('button:has-text("轿车（GLB）")')
 await page.waitForTimeout(4500)
@@ -196,21 +199,13 @@ await page.click('.part:has-text("车身漆面")')
 await page.waitForTimeout(1800)
 check('GLB 轿车 · 选中车身漆面无变化', conceptBase, await canvasShot('concept-sel-body'))
 
-// 换色仍然生效（确认功能没被误删）
-log('verify recolor still works')
-await page.click('button:has-text("轿车（程序化）")')
-await page.waitForTimeout(3000)
 const beforeColor = await canvasShot('recolor-before')
-await page.click('.part:has-text("车身漆面")')
-await page.waitForTimeout(1200)
 const swatchName = await page.locator('.swatches .swatch').nth(4).getAttribute('title')
 log('pick swatch:', swatchName)
 await page.locator('.swatches .swatch').nth(4).click()
 await page.waitForTimeout(1600)
-const afterColor = await canvasShot('recolor-after')
-const recolor = diffPNG(beforeColor, afterColor)
-results.push({ label: '换色功能仍生效', ok: !recolor.sizeMismatch && recolor.changed > 5000, changed: recolor.changed, pixels: recolor.pixels })
-log(`换色前后差异像素 ${recolor.changed}/${recolor.pixels}（应远大于 0）`)
+const recolor = diffPNG(beforeColor, await canvasShot('recolor-after'))
+assert('换色功能仍生效', !recolor.sizeMismatch && recolor.changed > 5000, `差异像素 ${recolor.changed}/${recolor.pixels}`)
 
 if (errs.length) log('ERRORS:\n' + errs.slice(0, 6).join('\n'))
 else log('no page errors')
@@ -224,6 +219,6 @@ server.close()
 
 const failed = results.filter((r) => !r.ok)
 log('======== RESULT ========')
-results.forEach((r) => log(`${r.ok ? 'PASS' : 'FAIL'} ${r.label}  diff=${r.changed ?? '-'}/${r.pixels ?? '-'}`))
+results.forEach((r) => log(`${r.ok ? 'PASS' : 'FAIL'} ${r.label}`))
 log(failed.length === 0 ? 'ALL PASS' : `${failed.length} FAILED`)
 process.exit(failed.length === 0 ? 0 : 1)

@@ -66,11 +66,11 @@ async function drag(dx, dy, steps = 18) {
 
 log('goto')
 await page.goto(`http://127.0.0.1:${PORT}${PREFIX}/`, { waitUntil: 'load', timeout: 60000 })
-await page.waitForSelector('button:has-text("BMW M4（分层）")', { timeout: 60000 })
+await page.waitForSelector('button:has-text("BMW M4")', { timeout: 60000 })
 await page.waitForTimeout(2000)
 
 log('click BMW')
-await page.click('button:has-text("BMW M4（分层）")')
+await page.click('button:has-text("BMW M4")')
 await page.waitForFunction(() => !(document.body.innerText || '').includes('加载中') && !(document.body.innerText || '').includes('后台下载中'), { timeout: 160000, polling: 500 })
 log('model loaded')
 await page.waitForTimeout(2000)
