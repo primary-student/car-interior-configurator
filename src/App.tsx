@@ -1,6 +1,8 @@
 import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { ContactShadows, Environment, Html, Lightformer, OrbitControls, PerformanceMonitor, Stats, useGLTF } from '@react-three/drei'
+import { GLTFLoader } from 'three-stdlib'
+import { peek } from 'suspend-react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { Cockpit } from './components/Cockpit'
 import { CarBody } from './components/CarBody'
@@ -11,8 +13,22 @@ import { PALETTE, PAINT_PALETTE, PART_NAMES, PRESETS, useStore, type PartId } fr
 const ConceptCar = lazy(() => import('./components/ConceptCar'))
 const BmwM4 = lazy(() => import('./components/BmwM4'))
 
-// BMW 模型带 meshopt 压缩，URL 与 BmwM4 组件内一致，预加载可命中同一缓存
+// BMW 模型（draco 压缩）URL 与 BmwM4 组件内一致，预加载可命中同一份 drei 缓存
 const BMW_MODEL_URL = `${import.meta.env.BASE_URL}models/bmw-m4-csl.glb`
+// draco 解码器本地路径，必须与 BmwM4 组件内 DRACO_PATH 完全一致，
+// 否则预加载的解码配置与组件加载不一致会导致解码失败
+const BMW_DRACO_PATH = `${import.meta.env.BASE_URL}draco/`
+
+// 进入网站即开始下载 BMW 模型并写入 drei 缓存（缓存 key 为 [GLTFLoader, BMW_MODEL_URL]），
+// 这样点击 BMW 按钮时直接命中缓存、不再重新下载。
+// 用模块级 flag 防止 StrictMode / HMR 重复触发（suspend-react 本身也已幂等）。
+let bmwPreloadStarted = false
+function startBmwPreload() {
+  if (bmwPreloadStarted) return
+  bmwPreloadStarted = true
+  useGLTF.preload(BMW_MODEL_URL, BMW_DRACO_PATH)
+}
+startBmwPreload()
 
 function Scene() {
   const view = useStore((s) => s.view)
@@ -126,7 +142,7 @@ function OrbitControlsTarget() {
   )
 }
 
-const Panel = memo(function Panel() {
+const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
   const selected = useStore((s) => s.selected)
   const colors = useStore((s) => s.colors)
   const select = useStore((s) => s.select)
@@ -158,6 +174,7 @@ const Panel = memo(function Panel() {
           <button className={view === 'concept' ? 'view-active' : ''} onClick={() => setView('concept')}>轿车（GLB）</button>
           <button className={view === 'bmw' ? 'view-active' : ''} onClick={() => setView('bmw')}>BMW M4（分层）</button>
         </div>
+        {!bmwReady && <p className="hint bmw-hint">BMW 模型后台下载中…（进网站即开始，稍后切换即秒出）</p>}
       </div>
 
       {view !== 'sedan' && (
@@ -250,24 +267,28 @@ function useMediaQuery(query: string) {
 export default function App() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [panelOpen, setPanelOpen] = useState(!isMobile)
-  const view = useStore((s) => s.view)
+  const [bmwReady, setBmwReady] = useState(false)
 
   useEffect(() => {
     setPanelOpen(!isMobile)
   }, [isMobile])
 
-  // 非 BMW 视图时，趁浏览器空闲预加载 BMW 模型（默认启用 meshopt 解码），
-  // 这样用户点 BMW 时模型已缓存，几乎是秒出，不再有漫长加载。
+  // 轮询 drei 缓存：BMW 模型后台下载完成后，面板提示由“下载中”变为可切换。
+  // 用 peek 直接查全局缓存，无需重复发起请求。
   useEffect(() => {
-    if (view === 'bmw') return
-    const w = window as unknown as {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
-      cancelIdleCallback?: (id: number) => void
-    }
-    if (!w.requestIdleCallback) return
-    const id = w.requestIdleCallback(() => { useGLTF.preload(BMW_MODEL_URL, `${import.meta.env.BASE_URL}draco/`) }, { timeout: 4000 })
-    return () => w.cancelIdleCallback?.(id)
-  }, [view])
+    if (bmwReady) return
+    const id = window.setInterval(() => {
+      try {
+        if (peek([GLTFLoader, BMW_MODEL_URL])) {
+          setBmwReady(true)
+          window.clearInterval(id)
+        }
+      } catch {
+        /* peek 不可用时静默忽略，点击 BMW 仍走缓存 */
+      }
+    }, 500)
+    return () => window.clearInterval(id)
+  }, [bmwReady])
 
   return (
     <div className="app">
@@ -281,7 +302,7 @@ export default function App() {
         {panelOpen ? '✕' : '☰'}
       </button>
       <div className={`panel-outer ${panelOpen ? 'panel-open' : 'panel-closed'} ${isMobile ? 'panel-mobile' : ''}`}>
-        <Panel />
+        <Panel bmwReady={bmwReady} />
       </div>
     </div>
   )
