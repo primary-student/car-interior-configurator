@@ -1,10 +1,9 @@
-import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { memo, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { useStore, type PartId } from '../store'
 import { MatCtx, type MatKey } from './MatCtx'
-import { DashOutlineLayer } from './DashOutline'
 
 /** 材质生成：每个 (roughness, metalness, physical) 组合只创建一次材质实例 */
 function createMaterial(key: MatKey, color: string, glow: number) {
@@ -46,28 +45,11 @@ const M = memo(function M({ roughness = 0.75, metalness = 0.05, physical = false
 
 export const Part = memo(function Part({ id, children }: { id: PartId; children: ReactNode }) {
   const color = useStore((s) => s.colors[id])
-  const selected = useStore((s) => s.selected === id)
   const select = useStore((s) => s.select)
   const [hovered, setHovered] = useState(false)
-  // 选中态改用虚线描边表达，材质只保留悬停的轻微提亮
+  // 悬停时轻微提亮，作为「可点击」提示（点击选中不再有任何视觉变化）
   const glow = hovered ? 0.12 : 0
   const matCache = useRef<Map<string, THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial>>(new Map())
-  const groupRef = useRef<THREE.Group>(null)
-  const [outlineMeshes, setOutlineMeshes] = useState<THREE.Mesh[]>([])
-
-  // 选中时收集本部件下的 mesh，交给虚线描边层（不触碰材质）
-  useEffect(() => {
-    if (!selected || !groupRef.current) {
-      if (outlineMeshes.length) setOutlineMeshes([])
-      return
-    }
-    const list: THREE.Mesh[] = []
-    groupRef.current.traverse((o) => {
-      if (o instanceof THREE.Mesh && o.visible) list.push(o)
-    })
-    setOutlineMeshes(list)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected])
 
   const getMat = useCallback((key: MatKey) => {
     const k = `${key.roughness}_${key.metalness}_${key.physical ? 1 : 0}`
@@ -103,14 +85,12 @@ export const Part = memo(function Part({ id, children }: { id: PartId; children:
   return (
     <MatCtx.Provider value={ctxValue}>
       <group
-        ref={groupRef}
         onClick={onClick}
         onPointerOver={onPointerOver}
         onPointerOut={onPointerOut}
       >
         {children}
       </group>
-      <DashOutlineLayer meshes={outlineMeshes} />
     </MatCtx.Provider>
   )
 })

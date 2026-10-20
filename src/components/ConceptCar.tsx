@@ -3,7 +3,6 @@ import { useGLTF } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useStore } from '../store'
-import { DashOutlineLayer } from './DashOutline'
 
 /** 不属于车漆的材质名（车灯/玻璃/轮胎/塑料件） */
 const NON_PAINT = new Set(['Windows', 'Black', 'Grey', 'Headlights', 'TailLights'])
@@ -17,7 +16,6 @@ const MODEL_URL = `${import.meta.env.BASE_URL}models/sedan.glb`
 export default function ConceptCar() {
   const { scene } = useGLTF(MODEL_URL)
   const colors = useStore((s) => s.colors)
-  const selected = useStore((s) => s.selected)
   const select = useStore((s) => s.select)
   const interiorMode = useStore((s) => s.interiorMode)
 
@@ -69,12 +67,6 @@ export default function ConceptCar() {
     prevColor.current = c
   }, [colors.body_paint, paintMats])
 
-  // 选中态：虚线描边，不改车漆颜色
-  const outlineMeshes = useMemo(
-    () => (selected === 'body_paint' ? [...paintMeshes] : []),
-    [selected, paintMeshes],
-  )
-
   // 组件卸载时释放 clone 出的几何体/材质
   useEffect(() => {
     return () => {
@@ -124,10 +116,5 @@ export default function ConceptCar() {
     select('body_paint')
   }, [interiorMode, select])
 
-  return (
-    <>
-      <primitive object={normalized} onClick={onClick} />
-      <DashOutlineLayer meshes={outlineMeshes} version={interiorMode ? 'interior' : 'exterior'} />
-    </>
-  )
+  return <primitive object={normalized} onClick={onClick} />
 }
