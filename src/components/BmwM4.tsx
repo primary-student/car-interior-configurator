@@ -12,6 +12,68 @@ const MODEL_URL = `${import.meta.env.BASE_URL}models/bmw-m4-csl.glb`
 // 解码器放在 public/draco/，避免依赖 gstatic CDN，国内访问稳定。
 const DRACO_PATH = `${import.meta.env.BASE_URL}draco/`
 
+/** 车顶开口区域（车体归一化坐标系） */
+type RoofOpenZone = { minX: number; maxX: number; minZ: number; maxZ: number; y: number }
+
+const _v = new THREE.Vector3()
+
+/**
+ * 真正的去顶：把落在「车顶开口区」内的三角面从几何体中删除。
+ * BMW 模型的车顶外板并进了 body_Paint / body_Black / interior_csl 三个大 mesh，
+ * 只隐藏独立车顶板没用，必须裁掉这些整车网格顶部的面。
+ * 返回裁剪后的几何（保留原几何用于外观模式切换）；无可裁面片返回 null。
+ */
+function clipRoofFaces(mesh: THREE.Mesh, zone: RoofOpenZone): { geometry: THREE.BufferGeometry; removed: number } | null {
+  const geo = mesh.geometry
+  const posAttr = geo.getAttribute('position') as THREE.BufferAttribute | undefined
+  if (!posAttr) return null
+
+  const m = mesh.matrixWorld
+  const count = posAttr.count
+  const inside = new Uint8Array(count)
+  let hit = 0
+  for (let i = 0; i < count; i++) {
+    _v.fromBufferAttribute(posAttr, i).applyMatrix4(m)
+    if (_v.y > zone.y && _v.x >= zone.minX && _v.x <= zone.maxX && _v.z >= zone.minZ && _v.z <= zone.maxZ) {
+      inside[i] = 1
+      hit++
+    }
+  }
+  if (hit < 3) return null
+
+  const index = geo.getIndex()
+  const total = index ? index.count : count
+  const groups = geo.groups.length
+    ? geo.groups.map((g) => ({ start: g.start, count: g.count, materialIndex: g.materialIndex ?? 0 }))
+    : [{ start: 0, count: total, materialIndex: 0 }]
+
+  const kept: number[] = []
+  const newGroups: { start: number; count: number; materialIndex: number }[] = []
+  let removed = 0
+  for (const g of groups) {
+    const gStart = kept.length
+    const end = Math.min(g.start + g.count, total)
+    for (let f = g.start; f + 2 < end; f += 3) {
+      const a = index ? index.getX(f) : f
+      const b = index ? index.getX(f + 1) : f + 1
+      const c = index ? index.getX(f + 2) : f + 2
+      if (inside[a] && inside[b] && inside[c]) { removed++; continue }
+      kept.push(a, b, c)
+    }
+    if (kept.length > gStart) newGroups.push({ start: gStart, count: kept.length - gStart, materialIndex: g.materialIndex })
+  }
+  if (!removed || !kept.length) return null
+
+  const clipped = geo.clone()
+  clipped.clearGroups()
+  newGroups.forEach((g) => clipped.addGroup(g.start, g.count, g.materialIndex))
+  // 索引类型：顶点数超过 65535 必须用 Uint32
+  clipped.setIndex(count > 65535 ? new THREE.Uint32BufferAttribute(kept, 1) : new THREE.Uint16BufferAttribute(kept, 1))
+  clipped.computeBoundingBox()
+  clipped.computeBoundingSphere()
+  return { geometry: clipped, removed }
+}
+
 export default function BmwM4() {
   const { scene } = useGLTF(MODEL_URL, DRACO_PATH)
   const colors = useStore((s) => s.colors)
@@ -36,6 +98,7 @@ export default function BmwM4() {
     interiorMeshes,
     partMaterials,
     anchors,
+    roofClip,
   } = useMemo(() => {
     const cloned = scene.clone(true)
 
@@ -156,19 +219,65 @@ export default function BmwM4() {
       })
     }
 
-    // ---- 计算驾驶位相机锚点（归一化坐标系内） ----
-    // 车头朝向沿车身纵轴（较长轴），用前/后风挡判定正负，视线严格沿中线朝前。
-    const findByPrefix = (prefix: string): THREE.Object3D | null => {
+    // ---- 真正去顶：裁剪掉整车大网格里属于车顶的三角面 ----
+    // 车顶外板被建模进 body_Paint / body_Black / interior_csl（顶棚），
+    // 仅隐藏独立车顶板会留下车顶。开口范围取碳纤维车顶板的 XZ 投影，
+    // 下切面取顶板底缘（略下移 1cm 盖住内衬），把该区域上方所有面删掉。
+    const carbonRoof = [...roofMeshes].filter((m) => m.name.startsWith('M4xNME_roof_carbon'))
+    const roofBox = new THREE.Box3()
+    ;(carbonRoof.length ? carbonRoof : [...roofMeshes]).forEach((m) => roofBox.expandByObject(m))
+    // 开口：XZ 用车顶板 + 前后风挡的并集（车顶板只覆盖后段，前风挡上方仍有顶面），
+    // Y 阈值必须单独取自车顶板底缘 —— 否则会被风挡(低至 0.96m)带偏，把座椅/仪表台一起切掉。
+    const findFirst = (prefix: string): THREE.Object3D | null => {
       let found: THREE.Object3D | null = null
       cloned.traverse((o) => {
         if (!found && o.name.startsWith(prefix)) found = o
       })
       return found
     }
+    const wsObj = findFirst('M4xNME_windshield')
+    const fbObj = findFirst('M4xNME_backlight')
+    const openBox = roofBox.clone()
+    for (const o of [wsObj, fbObj]) {
+      if (!o) continue
+      const b = new THREE.Box3().setFromObject(o)
+      if (b.isEmpty()) continue
+      openBox.min.x = Math.min(openBox.min.x, b.min.x)
+      openBox.max.x = Math.max(openBox.max.x, b.max.x)
+      openBox.min.z = Math.min(openBox.min.z, b.min.z)
+      openBox.max.z = Math.max(openBox.max.z, b.max.z)
+    }
+    const roofClip = new Map<THREE.Mesh, { orig: THREE.BufferGeometry; clipped: THREE.BufferGeometry }>()
+    const clipInfo: { name: string; removed: number }[] = []
+    let openZone: RoofOpenZone | null = null
+    if (!roofBox.isEmpty()) {
+      const pad = 0.015
+      const zone: RoofOpenZone = {
+        minX: openBox.min.x - pad,
+        maxX: openBox.max.x + pad,
+        minZ: openBox.min.z - pad,
+        maxZ: openBox.max.z + pad,
+        y: roofBox.min.y - 0.01,
+      }
+      openZone = zone
+      const cutY = zone.y
+      cloned.traverse((o) => {
+        if (!(o instanceof THREE.Mesh) || roofMeshes.has(o) || glassMeshes.has(o)) return
+        const b = new THREE.Box3().setFromObject(o)
+        if (b.isEmpty() || b.max.y <= cutY) return
+        // XZ 与开口区无交集则跳过
+        if (b.max.x < zone.minX || b.min.x > zone.maxX || b.max.z < zone.minZ || b.min.z > zone.maxZ) return
+        const r = clipRoofFaces(o, zone)
+        if (!r) return
+        roofClip.set(o, { orig: o.geometry, clipped: r.geometry })
+        clipInfo.push({ name: o.name, removed: r.removed })
+      })
+    }
+
+    // ---- 计算驾驶位相机锚点（归一化坐标系内） ----
+    // 车头朝向沿车身纵轴（较长轴），用前/后风挡判定正负，视线严格沿中线朝前。
     let anchors: { eye: [number, number, number]; look: [number, number, number] } | null = null
-    const seatObj = findByPrefix('M4xNME_seat_L') // 左舵：驾驶位在左
-    const wsObj = findByPrefix('M4xNME_windshield')
-    const fbObj = findByPrefix('M4xNME_backlight')
+    const seatObj = findFirst('M4xNME_seat_L') // 左舵：驾驶位在左
     if (seatObj && wsObj) {
       const sb = new THREE.Box3().setFromObject(seatObj)
       const wb = new THREE.Box3().setFromObject(wsObj)
@@ -211,6 +320,8 @@ export default function BmwM4() {
         roofTopY,
         roofZoneY,
         roofZoneAdded,
+        openZone,
+        clipped: clipInfo,
         top: geoTop.slice(0, 16),
         roof: roofNames,
         anchors,
@@ -225,6 +336,7 @@ export default function BmwM4() {
       interiorMeshes,
       partMaterials,
       anchors,
+      roofClip,
     }
   }, [scene])
 
@@ -280,13 +392,27 @@ export default function BmwM4() {
   useEffect(() => {
     const topOpen = roofHidden || interiorMode
     roofMeshes.forEach((mesh) => { mesh.visible = !topOpen })
+    // 车身/顶棚的顶部面片裁掉（外观模式切回原几何）
+    roofClip.forEach(({ orig, clipped }, mesh) => {
+      const want = topOpen ? clipped : orig
+      if (mesh.geometry !== want) mesh.geometry = want
+    })
     // 玻璃仅在「隐藏车顶」开关时隐藏；内饰模式下保留半透明玻璃，从敞篷口看进去更自然
     glassMeshes.forEach((mesh) => { mesh.visible = !roofHidden })
     if (typeof window !== 'undefined') {
       const w = window as unknown as Record<string, unknown>
       w.__bmwRoofVisible = [...roofMeshes].map((m) => ({ name: m.name, visible: m.visible }))
+      w.__bmwRoofClip = {
+        topOpen,
+        meshes: [...roofClip.entries()].map(([m, g]) => ({
+          name: m.name,
+          using: m.geometry === g.clipped ? 'clipped' : 'orig',
+          origFaces: (g.orig.getIndex()?.count ?? g.orig.getAttribute('position').count) / 3,
+          clippedFaces: (g.clipped.getIndex()?.count ?? 0) / 3,
+        })),
+      }
     }
-  }, [roofHidden, interiorMode, roofMeshes, glassMeshes])
+  }, [roofHidden, interiorMode, roofMeshes, glassMeshes, roofClip])
 
   // 内饰件按需显示：外观模式隐藏内部细节以提升性能；内饰模式显示
   useEffect(() => {
@@ -296,6 +422,7 @@ export default function BmwM4() {
   // 组件卸载时释放 clone 出的几何体/材质，避免反复切换车型导致内存增长
   useEffect(() => {
     return () => {
+      roofClip.forEach(({ clipped }) => clipped.dispose())
       normalized.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
           obj.geometry.dispose()
@@ -304,7 +431,7 @@ export default function BmwM4() {
         }
       })
     }
-  }, [normalized])
+  }, [normalized, roofClip])
 
   // BMW 内饰模式：仅掀开车顶 + 显示内饰，车身外壳与玻璃保持原样（用户要求去顶而非改玻璃）。
   // 不再将车身做半透明幽灵化，避免整车内透、也避免改动玻璃观感；从敞开的车顶俯视即可看内饰。

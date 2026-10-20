@@ -117,6 +117,6 @@ export const useStore = create<ConfiguratorState>((set) => ({
   toggleRoof: () => set((s) => ({ roofHidden: !s.roofHidden })),
   setView: (v) => set({ view: v, selected: null, interiorMode: false }),
   setInteriorMode: (v) =>
-    set({ interiorMode: v, selected: v ? 'seat_driver' : 'body_paint' }),
+    set({ interiorMode: v, selected: v ? 'seat_driver' : null }),
   setBmwAnchors: (a) => set({ bmwAnchors: a }),
 }))
