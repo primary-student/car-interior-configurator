@@ -3,6 +3,7 @@ import { useGLTF } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useStore, type PartId } from '../store'
+import { DashOutlineLayer } from './DashOutline'
 
 /** BMW M4 CSL 分层 GLB（CC BY 4.0）
  *  天然分层：车身/车顶/车门/座椅/方向盘/仪表台/中控台均为独立 mesh。
@@ -86,16 +87,15 @@ export default function BmwM4() {
     seat_driver: '', seat_passenger: '', steering: '', dashboard: '',
     door_left: '', door_right: '', console: '', screen_frame: '', body_paint: '',
   })
-  const prevSelected = useRef<string | null>(null)
 
   // 归一化、分类 mesh、建立材质映射
   const {
     normalized,
-    paintMats,
     roofMeshes,
     glassMeshes,
     interiorMeshes,
     partMaterials,
+    partMeshes,
     anchors,
     roofClip,
   } = useMemo(() => {
@@ -110,10 +110,22 @@ export default function BmwM4() {
     const center = box.getCenter(new THREE.Vector3())
     cloned.position.set(-center.x, -box.min.y, -center.z)
 
-    const paintMats = new Set<THREE.Material>()
     const roofMeshes = new Set<THREE.Mesh>()
     const glassMeshes = new Set<THREE.Mesh>()
     const interiorMeshes = new Set<THREE.Mesh>()
+    // 选中描边用：部位 -> 实际 mesh（材质相同但可能是多个 mesh）
+    const bodyMeshes = new Set<THREE.Mesh>()
+    const partMeshes: Record<PartId, Set<THREE.Mesh>> = {
+      seat_driver: new Set(),
+      seat_passenger: new Set(),
+      steering: new Set(),
+      dashboard: new Set(),
+      door_left: new Set(),
+      door_right: new Set(),
+      console: new Set(),
+      screen_frame: new Set(),
+      body_paint: bodyMeshes,
+    }
     const partMaterials: Record<PartId, Set<THREE.Material>> = {
       seat_driver: new Set(),
       seat_passenger: new Set(),
@@ -174,14 +186,15 @@ export default function BmwM4() {
       // 车漆
       mats.forEach((m) => {
         if (isPaintMat(m.name)) {
-          paintMats.add(m)
           partMaterials.body_paint.add(m)
+          bodyMeshes.add(obj)
         }
       })
 
       // 内饰部件材质 + mesh
       if (partId) {
         interiorMeshes.add(obj)
+        partMeshes[partId].add(obj)
         mats.forEach((m) => {
           if (
             m.name.includes('Leather') ||
@@ -335,11 +348,11 @@ export default function BmwM4() {
 
     return {
       normalized: cloned,
-      paintMats,
       roofMeshes,
       glassMeshes,
       interiorMeshes,
       partMaterials,
+      partMeshes,
       anchors,
       roofClip,
     }
@@ -368,30 +381,12 @@ export default function BmwM4() {
     })
   }, [colors, partMaterials])
 
-  // 增量更新选中高亮
-  useEffect(() => {
-    if (prevSelected.current === selected) return
-    const prev = prevSelected.current as PartId | null
-    const applyEmissive = (id: PartId | null, intensity: number) => {
-      if (!id) return
-      if (id === 'body_paint') {
-        paintMats.forEach((m) => {
-          const mat = m as THREE.MeshStandardMaterial
-          mat.emissive.set('#ffffff')
-          mat.emissiveIntensity = intensity
-        })
-      } else {
-        partMaterials[id].forEach((m) => {
-          const mat = m as THREE.MeshStandardMaterial
-          mat.emissive.set('#ffffff')
-          mat.emissiveIntensity = intensity
-        })
-      }
-    }
-    applyEmissive(prev, 0)
-    applyEmissive(selected, selected === 'body_paint' ? 0.15 : selected ? 0.2 : 0)
-    prevSelected.current = selected
-  }, [selected, paintMats, partMaterials])
+  // 选中态：只叠一层虚线描边，不改被选部件的颜色/自发光
+  const outlineMeshes = useMemo(() => {
+    if (!selected) return []
+    const set = partMeshes[selected]
+    return set ? [...set] : []
+  }, [selected, partMeshes])
 
   // 车顶开合：内饰模式自动去顶（原「隐藏车顶」勾选框已移除，开关只剩视角模式）
   useEffect(() => {
@@ -476,5 +471,10 @@ export default function BmwM4() {
     select(id)
   }, [select])
 
-  return <primitive object={normalized} onClick={onClick} />
+  return (
+    <>
+      <primitive object={normalized} onClick={onClick} />
+      <DashOutlineLayer meshes={outlineMeshes} version={interiorMode ? 'interior' : 'exterior'} />
+    </>
+  )
 }

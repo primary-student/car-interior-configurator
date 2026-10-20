@@ -3,6 +3,7 @@ import { useGLTF } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useStore } from '../store'
+import { DashOutlineLayer } from './DashOutline'
 
 /** 不属于车漆的材质名（车灯/玻璃/轮胎/塑料件） */
 const NON_PAINT = new Set(['Windows', 'Black', 'Grey', 'Headlights', 'TailLights'])
@@ -22,7 +23,6 @@ export default function ConceptCar() {
 
   const originalRaycast = useRef<WeakMap<THREE.Mesh, THREE.Mesh['raycast']>>(new WeakMap())
   const prevColor = useRef<string>('')
-  const prevSelected = useRef<boolean | null>(null)
 
   // 归一化：最长边 ≈ 4.6m，贴地居中；按材质名分类 mesh
   const { normalized, paintMats, paintMeshes, windowMeshes } = useMemo(() => {
@@ -69,17 +69,11 @@ export default function ConceptCar() {
     prevColor.current = c
   }, [colors.body_paint, paintMats])
 
-  // 增量更新选中高亮
-  useEffect(() => {
-    const isSelected = selected === 'body_paint'
-    if (prevSelected.current !== null && prevSelected.current === isSelected) return
-    paintMats.forEach((m) => {
-      const mat = m as THREE.MeshStandardMaterial
-      mat.emissive.set('#ffffff')
-      mat.emissiveIntensity = isSelected ? 0.18 : 0
-    })
-    prevSelected.current = isSelected
-  }, [selected, paintMats])
+  // 选中态：虚线描边，不改车漆颜色
+  const outlineMeshes = useMemo(
+    () => (selected === 'body_paint' ? [...paintMeshes] : []),
+    [selected, paintMeshes],
+  )
 
   // 组件卸载时释放 clone 出的几何体/材质
   useEffect(() => {
@@ -130,5 +124,10 @@ export default function ConceptCar() {
     select('body_paint')
   }, [interiorMode, select])
 
-  return <primitive object={normalized} onClick={onClick} />
+  return (
+    <>
+      <primitive object={normalized} onClick={onClick} />
+      <DashOutlineLayer meshes={outlineMeshes} version={interiorMode ? 'interior' : 'exterior'} />
+    </>
+  )
 }
