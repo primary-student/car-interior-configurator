@@ -44,17 +44,17 @@ const Wheel = ({ x, z }: { x: number; z: number }) => {
 }
 
 /** 必须在 Part 内部渲染，才能拿到共享材质 */
-function BodyShell({ bodyGeo, roofGeo, roofHidden }: {
+function BodyShell({ bodyGeo, roofGeo, roofOff }: {
   bodyGeo: THREE.BufferGeometry
   roofGeo: THREE.BufferGeometry
-  roofHidden: boolean
+  roofOff: boolean
 }) {
   const ctx = useContext(MatCtx)
   const paintMat = ctx?.getMat({ roughness: 0.3, metalness: 0.4, physical: true })
   return (
     <>
       <mesh geometry={bodyGeo} material={paintMat} castShadow receiveShadow />
-      {!roofHidden && <mesh geometry={roofGeo} material={paintMat} castShadow receiveShadow />}
+      {!roofOff && <mesh geometry={roofGeo} material={paintMat} castShadow receiveShadow />}
     </>
   )
 }
@@ -66,7 +66,7 @@ function BodyShell({ bodyGeo, roofGeo, roofHidden }: {
  * 性能优化：车身大壳合并为一个 geometry（1 个 draw call），车顶合并为另一个。
  */
 export function CarBody() {
-  const roofHidden = useStore((s) => s.roofHidden)
+  const roofOff = useStore((s) => s.interiorMode)
 
   const bodyGeo = useMemo(() => {
     return mergeGeometries([
@@ -105,10 +105,10 @@ export function CarBody() {
   return (
     <group>
       <Part id="body_paint">
-        <BodyShell bodyGeo={bodyGeo} roofGeo={roofGeo} roofHidden={roofHidden} />
+        <BodyShell bodyGeo={bodyGeo} roofGeo={roofGeo} roofOff={roofOff} />
       </Part>
 
-      {!roofHidden && (
+      {!roofOff && (
         <mesh geometry={glassGeo} castShadow={false} receiveShadow={false}>
           <Glass />
         </mesh>

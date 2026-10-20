@@ -80,7 +80,6 @@ export default function BmwM4() {
   const selected = useStore((s) => s.selected)
   const select = useStore((s) => s.select)
   const interiorMode = useStore((s) => s.interiorMode)
-  const roofHidden = useStore((s) => s.roofHidden)
   const setBmwAnchors = useStore((s) => s.setBmwAnchors)
 
   const prevColors = useRef<Record<PartId, string>>({
@@ -388,17 +387,17 @@ export default function BmwM4() {
     prevSelected.current = selected
   }, [selected, paintMats, partMaterials])
 
-  // 车顶/玻璃可见性：隐藏车顶开关 或 内饰模式 → 自动去顶，便于看内饰
+  // 车顶开合：内饰模式自动去顶（原「隐藏车顶」勾选框已移除，开关只剩视角模式）
   useEffect(() => {
-    const topOpen = roofHidden || interiorMode
+    const topOpen = interiorMode
     roofMeshes.forEach((mesh) => { mesh.visible = !topOpen })
     // 车身/顶棚的顶部面片裁掉（外观模式切回原几何）
     roofClip.forEach(({ orig, clipped }, mesh) => {
       const want = topOpen ? clipped : orig
       if (mesh.geometry !== want) mesh.geometry = want
     })
-    // 玻璃仅在「隐藏车顶」开关时隐藏；内饰模式下保留半透明玻璃，从敞篷口看进去更自然
-    glassMeshes.forEach((mesh) => { mesh.visible = !roofHidden })
+    // 内饰模式下玻璃保持半透明，从敞篷口看进去更自然
+    glassMeshes.forEach((mesh) => { mesh.visible = true })
     if (typeof window !== 'undefined') {
       const w = window as unknown as Record<string, unknown>
       w.__bmwRoofVisible = [...roofMeshes].map((m) => ({ name: m.name, visible: m.visible }))
@@ -412,7 +411,7 @@ export default function BmwM4() {
         })),
       }
     }
-  }, [roofHidden, interiorMode, roofMeshes, glassMeshes, roofClip])
+  }, [interiorMode, roofMeshes, glassMeshes, roofClip])
 
   // 内饰件按需显示：外观模式隐藏内部细节以提升性能；内饰模式显示
   useEffect(() => {

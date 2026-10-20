@@ -90,14 +90,12 @@ export interface BmwAnchors {
 interface ConfiguratorState {
   selected: PartId | null
   colors: Record<PartId, string>
-  roofHidden: boolean
   view: ViewMode
   interiorMode: boolean
   bmwAnchors: BmwAnchors | null
   select: (p: PartId | null) => void
   setColor: (p: PartId, color: string) => void
   applyPreset: (colors: Record<PartId, string>) => void
-  toggleRoof: () => void
   setView: (v: ViewMode) => void
   setInteriorMode: (v: boolean) => void
   setBmwAnchors: (a: BmwAnchors | null) => void
@@ -106,7 +104,6 @@ interface ConfiguratorState {
 export const useStore = create<ConfiguratorState>((set) => ({
   selected: null,
   colors: DEFAULT_COLORS,
-  roofHidden: false,
   view: 'sedan',
   interiorMode: false,
   bmwAnchors: null,
@@ -114,7 +111,6 @@ export const useStore = create<ConfiguratorState>((set) => ({
   setColor: (p, color) =>
     set((s) => ({ colors: { ...s.colors, [p]: color } })),
   applyPreset: (colors) => set({ colors }),
-  toggleRoof: () => set((s) => ({ roofHidden: !s.roofHidden })),
   setView: (v) => set({ view: v, selected: null, interiorMode: false }),
   setInteriorMode: (v) =>
     set({ interiorMode: v, selected: v ? 'seat_driver' : null }),

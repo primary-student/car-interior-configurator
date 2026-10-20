@@ -1,6 +1,7 @@
 import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, Environment, Html, Lightformer, OrbitControls, PerformanceMonitor, Stats, useGLTF } from '@react-three/drei'
+import * as THREE from 'three'
 import { GLTFLoader } from 'three-stdlib'
 import { peek } from 'suspend-react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -102,6 +103,7 @@ function Scene() {
       )}
 
       <OrbitControlsTarget />
+      <DriverLook />
     </Canvas>
   )
 }
@@ -124,13 +126,14 @@ function OrbitControlsTarget() {
   useEffect(() => {
     const controls = controlsRef.current
     if (!controls) return
-    if (view === 'bmw' && interiorMode && bmwAnchors) {
-      // 驾驶员视角：相机放到驾驶位眼位，朝车头方向看
-      const [ex, ey, ez] = bmwAnchors.eye
-      const [lx, ly, lz] = bmwAnchors.look
-      controls.object.position.set(ex, ey, ez)
+    if (bmwDriverView) {
+      // 驾驶位固定视角由 <DriverLook> 每帧接管，这里只把 target 对齐视线，
+      // 不再 update()，避免与固定相机的位置设定互相争抢。
+      const [lx, ly, lz] = bmwAnchors!.look
       controls.target.set(lx, ly, lz)
-    } else if (view === 'bmw' && interiorMode) {
+      return
+    }
+    if (view === 'bmw' && interiorMode) {
       // 锚点尚未就绪时的兜底：去顶后俯视进舱
       controls.object.position.set(0.9, 2.2, 2.6)
       controls.target.set(0, 0.55, 0)
@@ -147,7 +150,7 @@ function OrbitControlsTarget() {
       w.__bmwCam = {
         pos: controls.object.position.toArray(),
         target: controls.target.toArray(),
-        mode: bmwDriverView ? 'driver' : interiorMode ? 'interior' : 'exterior',
+        mode: interiorMode ? 'interior' : 'exterior',
       }
       // 调试用：外部可指定相机位姿，便于截图核对（不影响正常交互）
       w.__orbit = (px: number, py: number, pz: number, tx: number, ty: number, tz: number) => {
@@ -156,7 +159,7 @@ function OrbitControlsTarget() {
         controls.update()
       }
     }
-  }, [interiorMode, view, bmwAnchors])
+  }, [interiorMode, view, bmwAnchors, bmwDriverView])
 
   return (
     <OrbitControls
@@ -165,10 +168,124 @@ function OrbitControlsTarget() {
       minDistance={minDistance}
       maxDistance={maxDistance}
       maxPolarAngle={maxPolarAngle}
+      enabled={!bmwDriverView}
       enableDamping
       dampingFactor={0.08}
     />
   )
+}
+
+// ---- 驾驶位固定视角：相机钉在眼位，只允许小范围转头（上下左右） ----
+const YAW_LIMIT = (22 * Math.PI) / 180 // 左右各 22°
+const PITCH_LIMIT = (14 * Math.PI) / 180 // 上下各 14°
+const UP_AXIS = new THREE.Vector3(0, 1, 0)
+const _dir = new THREE.Vector3()
+const _right = new THREE.Vector3()
+const _lookAt = new THREE.Vector3()
+
+const clampNum = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+
+/**
+ * BMW 内饰模式：相机位置锁死在驾驶位眼位，
+ * 拖拽只改变视线方向（yaw/pitch），并限制在 ±22° / ±14° 内。
+ * 不支持缩放、平移、绕车旋转 —— 就像坐在驾驶座上左右看、抬头低头。
+ */
+function DriverLook() {
+  const view = useStore((s) => s.view)
+  const interiorMode = useStore((s) => s.interiorMode)
+  const anchors = useStore((s) => s.bmwAnchors)
+  const { camera, gl } = useThree()
+  const active = view === 'bmw' && interiorMode && !!anchors
+
+  const yaw = useRef(0)
+  const pitch = useRef(0)
+  const tYaw = useRef(0)
+  const tPitch = useRef(0)
+  const drag = useRef<{ x: number; y: number } | null>(null)
+
+  // 进出内饰模式时视线回正
+  useEffect(() => {
+    yaw.current = 0
+    pitch.current = 0
+    tYaw.current = 0
+    tPitch.current = 0
+  }, [active])
+
+  // 调试钩子：外部可把视线摆到指定角度（用于自动化截图核对）
+  useEffect(() => {
+    const w = window as unknown as Record<string, unknown>
+    w.__look = (yawDeg: number, pitchDeg: number) => {
+      tYaw.current = clampNum((yawDeg * Math.PI) / 180, -YAW_LIMIT, YAW_LIMIT)
+      tPitch.current = clampNum((pitchDeg * Math.PI) / 180, -PITCH_LIMIT, PITCH_LIMIT)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!active) return
+    const el = gl.domElement
+    const onDown = (e: PointerEvent) => {
+      drag.current = { x: e.clientX, y: e.clientY }
+    }
+    const onMove = (e: PointerEvent) => {
+      const d = drag.current
+      if (!d) return
+      const dx = e.clientX - d.x
+      const dy = e.clientY - d.y
+      d.x = e.clientX
+      d.y = e.clientY
+      // 灵敏度 0.0032 rad/px：拖满 300px 即到达极限
+      tYaw.current = clampNum(tYaw.current - dx * 0.0032, -YAW_LIMIT, YAW_LIMIT)
+      tPitch.current = clampNum(tPitch.current - dy * 0.0028, -PITCH_LIMIT, PITCH_LIMIT)
+    }
+    const onUp = () => {
+      drag.current = null
+    }
+    el.addEventListener('pointerdown', onDown)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+    return () => {
+      el.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      drag.current = null
+    }
+  }, [active, gl])
+
+  useFrame(() => {
+    if (!active || !anchors) return
+    const w = window as unknown as Record<string, unknown>
+    if (w.__freeCam) return // 调试：放开相机以便外部截俯视/侧视图
+    const [ex, ey, ez] = anchors.eye
+    const [lx, ly, lz] = anchors.look
+
+    // 位置固定（不随拖拽移动）
+    camera.position.set(ex, ey, ez)
+
+    // 阻尼趋近目标角度
+    yaw.current += (tYaw.current - yaw.current) * 0.16
+    pitch.current += (tPitch.current - pitch.current) * 0.16
+
+    _dir.set(lx - ex, ly - ey, lz - ez).normalize()
+    _dir.applyAxisAngle(UP_AXIS, yaw.current)
+    _right.crossVectors(_dir, UP_AXIS)
+    if (_right.lengthSq() > 1e-6) {
+      _right.normalize()
+      _dir.applyAxisAngle(_right, pitch.current)
+    }
+    camera.lookAt(_lookAt.copy(camera.position).add(_dir))
+
+    w.__bmwCam = {
+      pos: [ex, ey, ez],
+      target: _lookAt.toArray(),
+      mode: 'driver',
+      yawDeg: +((yaw.current * 180) / Math.PI).toFixed(2),
+      pitchDeg: +((pitch.current * 180) / Math.PI).toFixed(2),
+    }
+  })
+
+  return null
 }
 
 const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
@@ -177,8 +294,6 @@ const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
   const select = useStore((s) => s.select)
   const setColor = useStore((s) => s.setColor)
   const applyPreset = useStore((s) => s.applyPreset)
-  const roofHidden = useStore((s) => s.roofHidden)
-  const toggleRoof = useStore((s) => s.toggleRoof)
   const view = useStore((s) => s.view)
   const setView = useStore((s) => s.setView)
   const interiorMode = useStore((s) => s.interiorMode)
@@ -194,8 +309,13 @@ const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
   return (
     <div className="panel">
       <h1>内饰配置器</h1>
-      <p className="hint">拖拽旋转 · 滚轮缩放 · 点击车身/内饰部件换色</p>
-
+      <p className="hint">
+        {!interiorMode
+          ? '拖拽旋转 · 滚轮缩放 · 点击车身/内饰部件换色'
+          : view === 'bmw'
+            ? '固定驾驶位 · 拖拽可小幅上下左右环视（不可缩放/绕车）'
+            : '内饰视角 · 拖拽环视 · 滚轮缩放'}
+      </p>
       <div className="section">
         <h2>车型</h2>
         <div className="presets">
@@ -206,22 +326,13 @@ const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
         {!bmwReady && <p className="hint bmw-hint">BMW 模型后台下载中…（进网站即开始，稍后切换即秒出）</p>}
       </div>
 
-      {view !== 'sedan' && (
-        <div className="section">
-          <h2>视角</h2>
-          <div className="presets">
-            <button className={!interiorMode ? 'view-active' : ''} onClick={() => setInteriorMode(false)}>外观</button>
-            <button className={interiorMode ? 'view-active' : ''} onClick={() => setInteriorMode(true)}>内饰</button>
-          </div>
+      <div className="section">
+        <h2>视角</h2>
+        <div className="presets">
+          <button className={!interiorMode ? 'view-active' : ''} onClick={() => setInteriorMode(false)}>外观</button>
+          <button className={interiorMode ? 'view-active' : ''} onClick={() => setInteriorMode(true)}>内饰</button>
         </div>
-      )}
-
-      {(view === 'sedan' || view === 'bmw') && (
-        <label className="roof-toggle">
-          <input type="checkbox" checked={roofHidden} onChange={toggleRoof} />
-          隐藏车顶（查看内饰）
-        </label>
-      )}
+      </div>
 
       <div className="section">
         <h2>搭配方案</h2>
