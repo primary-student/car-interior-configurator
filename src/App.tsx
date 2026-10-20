@@ -175,9 +175,11 @@ function OrbitControlsTarget() {
   )
 }
 
-// ---- 驾驶位固定视角：相机钉在眼位，只允许小范围转头（上下左右） ----
-const YAW_LIMIT = (22 * Math.PI) / 180 // 左右各 22°
-const PITCH_LIMIT = (14 * Math.PI) / 180 // 上下各 14°
+// ---- 内饰固定视角：相机钉在眼位，只允许小范围转头（上下左右） ----
+const YAW_LIMIT = (38 * Math.PI) / 180 // 左右各 38°
+const PITCH_LIMIT = (24 * Math.PI) / 180 // 上下各 24°
+const BASE_FOV = 45 // 外观视角的默认视场角
+const INTERIOR_FOV = 74 // 内饰视角放大视场，座位里能看到更多仪表台/侧窗
 const UP_AXIS = new THREE.Vector3(0, 1, 0)
 const _dir = new THREE.Vector3()
 const _right = new THREE.Vector3()
@@ -186,9 +188,9 @@ const _lookAt = new THREE.Vector3()
 const clampNum = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
 /**
- * BMW 内饰模式：相机位置锁死在驾驶位眼位，
- * 拖拽只改变视线方向（yaw/pitch），并限制在 ±22° / ±14° 内。
- * 不支持缩放、平移、绕车旋转 —— 就像坐在驾驶座上左右看、抬头低头。
+ * BMW 内饰模式：相机位置锁死在前排两座之间（略微靠后），
+ * 拖拽只改变视线方向（yaw/pitch），并限制在 ±38° / ±24° 内。
+ * 不支持缩放、平移、绕车旋转 —— 就像坐在两座之间左右看、抬头低头。
  */
 function DriverLook() {
   const view = useStore((s) => s.view)
@@ -210,6 +212,19 @@ function DriverLook() {
     tYaw.current = 0
     tPitch.current = 0
   }, [active])
+
+  // 内饰模式放大视场角（退出时恢复原值），让座舱里能看到的范围更广
+  useEffect(() => {
+    if (!active) return
+    const cam = camera as THREE.PerspectiveCamera
+    const prevFov = cam.fov
+    cam.fov = INTERIOR_FOV
+    cam.updateProjectionMatrix()
+    return () => {
+      cam.fov = prevFov || BASE_FOV
+      cam.updateProjectionMatrix()
+    }
+  }, [active, camera])
 
   // 调试钩子：外部可把视线摆到指定角度（用于自动化截图核对）
   useEffect(() => {
@@ -233,9 +248,9 @@ function DriverLook() {
       const dy = e.clientY - d.y
       d.x = e.clientX
       d.y = e.clientY
-      // 灵敏度 0.0032 rad/px：拖满 300px 即到达极限
-      tYaw.current = clampNum(tYaw.current - dx * 0.0032, -YAW_LIMIT, YAW_LIMIT)
-      tPitch.current = clampNum(tPitch.current - dy * 0.0028, -PITCH_LIMIT, PITCH_LIMIT)
+      // 灵敏度 0.0030 rad/px：拖满约 220px 到达左右极限
+      tYaw.current = clampNum(tYaw.current - dx * 0.003, -YAW_LIMIT, YAW_LIMIT)
+      tPitch.current = clampNum(tPitch.current - dy * 0.0026, -PITCH_LIMIT, PITCH_LIMIT)
     }
     const onUp = () => {
       drag.current = null
@@ -313,7 +328,7 @@ const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
         {!interiorMode
           ? '拖拽旋转 · 滚轮缩放 · 点击车身/内饰部件换色'
           : view === 'bmw'
-            ? '固定驾驶位 · 拖拽可小幅上下左右环视（不可缩放/绕车）'
+            ? '固定在前排两座之间 · 拖拽可上下左右环视（不可缩放/绕车）'
             : '内饰视角 · 拖拽环视 · 滚轮缩放'}
       </p>
       <div className="section">

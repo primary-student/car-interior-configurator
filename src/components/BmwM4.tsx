@@ -273,12 +273,14 @@ export default function BmwM4() {
       })
     }
 
-    // ---- 计算驾驶位相机锚点（归一化坐标系内） ----
-    // 车头朝向沿车身纵轴（较长轴），用前/后风挡判定正负，视线严格沿中线朝前。
+    // ---- 计算内饰相机锚点（归一化坐标系内） ----
+    // 机位取「前排左右座椅正中、沿车头方向略靠后」，视线沿车身中线朝前。
     let anchors: { eye: [number, number, number]; look: [number, number, number] } | null = null
     const seatObj = findFirst('M4xNME_seat_L') // 左舵：驾驶位在左
+    const seatRObj = findFirst('M4xNME_seat_R') // 副驾，用于取两座正中
     if (seatObj && wsObj) {
       const sb = new THREE.Box3().setFromObject(seatObj)
+      const rb = seatRObj ? new THREE.Box3().setFromObject(seatRObj) : null
       const wb = new THREE.Box3().setFromObject(wsObj)
       const sc = sb.getCenter(new THREE.Vector3())
       const wc = wb.getCenter(new THREE.Vector3())
@@ -294,10 +296,14 @@ export default function BmwM4() {
         const rearX = fbObj ? new THREE.Box3().setFromObject(fbObj).getCenter(new THREE.Vector3()).x : sc.x - 1
         fwd = new THREE.Vector3(Math.sign(wc.x - rearX) || 1, 0, 0)
       }
-      const eye = sc.clone()
-      eye.y = sb.max.y - 0.1 // 眼位贴近头枕顶部下方
+      // 两座椅中点 → 相机落在左右座之间的中线；Y 取靠背顶下方，模拟眼位
+      const midX = rb ? (sc.x + rb.getCenter(new THREE.Vector3()).x) / 2 : sc.x
+      const midZ = rb ? (sc.z + rb.getCenter(new THREE.Vector3()).z) / 2 : sc.z
+      const seatTopY = rb ? Math.max(sb.max.y, rb.max.y) : sb.max.y
+      const eye = new THREE.Vector3(midX, seatTopY - 0.12, midZ)
+      eye.addScaledVector(fwd, -0.18) // 稍稍靠后：坐到靠背根部，而非坐垫前缘
       const look = eye.clone().addScaledVector(fwd, 6)
-      look.y = eye.y - 0.25 // 略微俯视仪表台/前方路面
+      look.y = eye.y - 0.3 // 略微俯视仪表台/前方路面
       anchors = {
         eye: [eye.x, eye.y, eye.z],
         look: [look.x, look.y, look.z],
