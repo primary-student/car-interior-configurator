@@ -68,6 +68,12 @@ function Scene() {
         <Lightformer intensity={1.0} position={[4, 2, 0]} rotation={[0, -Math.PI / 2, 0]} scale={[6, 2, 1]} />
       </Environment>
 
+      {/* 摄影棚地面：给内饰/驾驶员视角提供地平线与落影，避免外面一片纯色虚空 */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+        <circleGeometry args={[18, 64]} />
+        <meshStandardMaterial color="#3b3e43" roughness={0.95} metalness={0} />
+      </mesh>
+
       {view === 'sedan' ? (
         <>
           <CarBody />
@@ -104,38 +110,61 @@ function Scene() {
 function OrbitControlsTarget() {
   const view = useStore((s) => s.view)
   const interiorMode = useStore((s) => s.interiorMode)
+  const bmwAnchors = useStore((s) => s.bmwAnchors)
   const controlsRef = useRef<OrbitControlsImpl>(null)
+
+  // BMW 内饰且已拿到驾驶位锚点 → 驾驶员视角（坐进驾驶座朝前看）
+  const bmwDriverView = view === 'bmw' && interiorMode && !!bmwAnchors
+
+  const minDistance = bmwDriverView ? 0.4 : interiorMode ? 0.4 : 0.9
+  const maxDistance = bmwDriverView ? 12 : interiorMode ? 6 : 10
+  // 驾驶员视角需要允许接近水平视线（极角略大于 90°）
+  const maxPolarAngle = bmwDriverView ? Math.PI / 2 + 0.12 : Math.PI / 2.05
 
   useEffect(() => {
     const controls = controlsRef.current
     if (!controls) return
-    if (view === 'bmw' && interiorMode) {
-      // BMW 内饰：去顶后俯视进舱
+    if (view === 'bmw' && interiorMode && bmwAnchors) {
+      // 驾驶员视角：相机放到驾驶位眼位，朝车头方向看
+      const [ex, ey, ez] = bmwAnchors.eye
+      const [lx, ly, lz] = bmwAnchors.look
+      controls.object.position.set(ex, ey, ez)
+      controls.target.set(lx, ly, lz)
+    } else if (view === 'bmw' && interiorMode) {
+      // 锚点尚未就绪时的兜底：去顶后俯视进舱
       controls.object.position.set(0.9, 2.2, 2.6)
       controls.target.set(0, 0.55, 0)
-      controls.minDistance = 0.5
-      controls.maxDistance = 5
     } else if (interiorMode) {
       controls.object.position.set(0.55, 1.55, 1.7)
       controls.target.set(0, 0.85, 0.1)
-      controls.minDistance = 0.4
-      controls.maxDistance = 2.5
     } else {
       controls.object.position.set(4.2, 2.1, 4.8)
       controls.target.set(0, 0.85, 0)
-      controls.minDistance = 0.9
-      controls.maxDistance = 10
     }
     controls.update()
-  }, [interiorMode, view])
+    if (typeof window !== 'undefined') {
+      const w = window as unknown as Record<string, unknown>
+      w.__bmwCam = {
+        pos: controls.object.position.toArray(),
+        target: controls.target.toArray(),
+        mode: bmwDriverView ? 'driver' : interiorMode ? 'interior' : 'exterior',
+      }
+      // 调试用：外部可指定相机位姿，便于截图核对（不影响正常交互）
+      w.__orbit = (px: number, py: number, pz: number, tx: number, ty: number, tz: number) => {
+        controls.object.position.set(px, py, pz)
+        controls.target.set(tx, ty, tz)
+        controls.update()
+      }
+    }
+  }, [interiorMode, view, bmwAnchors])
 
   return (
     <OrbitControls
       ref={controlsRef}
       target={[0, 0.85, 0]}
-      minDistance={0.9}
-      maxDistance={10}
-      maxPolarAngle={Math.PI / 2.05}
+      minDistance={minDistance}
+      maxDistance={maxDistance}
+      maxPolarAngle={maxPolarAngle}
       enableDamping
       dampingFactor={0.08}
     />

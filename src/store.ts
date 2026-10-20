@@ -79,18 +79,28 @@ export const PRESETS: { name: string; colors: Record<PartId, string> }[] = [
 
 export type ViewMode = 'sedan' | 'concept' | 'bmw'
 
+/** BMW 模型归一化后计算出的相机锚点（坐在驾驶位向前看） */
+export interface BmwAnchors {
+  /** 驾驶位眼睛位置 */
+  eye: [number, number, number]
+  /** 视线目标点（正前方） */
+  look: [number, number, number]
+}
+
 interface ConfiguratorState {
   selected: PartId | null
   colors: Record<PartId, string>
   roofHidden: boolean
   view: ViewMode
   interiorMode: boolean
+  bmwAnchors: BmwAnchors | null
   select: (p: PartId | null) => void
   setColor: (p: PartId, color: string) => void
   applyPreset: (colors: Record<PartId, string>) => void
   toggleRoof: () => void
   setView: (v: ViewMode) => void
   setInteriorMode: (v: boolean) => void
+  setBmwAnchors: (a: BmwAnchors | null) => void
 }
 
 export const useStore = create<ConfiguratorState>((set) => ({
@@ -99,6 +109,7 @@ export const useStore = create<ConfiguratorState>((set) => ({
   roofHidden: false,
   view: 'sedan',
   interiorMode: false,
+  bmwAnchors: null,
   select: (p) => set({ selected: p }),
   setColor: (p, color) =>
     set((s) => ({ colors: { ...s.colors, [p]: color } })),
@@ -107,4 +118,5 @@ export const useStore = create<ConfiguratorState>((set) => ({
   setView: (v) => set({ view: v, selected: null, interiorMode: false }),
   setInteriorMode: (v) =>
     set({ interiorMode: v, selected: v ? 'seat_driver' : 'body_paint' }),
+  setBmwAnchors: (a) => set({ bmwAnchors: a }),
 }))

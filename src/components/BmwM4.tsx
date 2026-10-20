@@ -19,6 +19,7 @@ export default function BmwM4() {
   const select = useStore((s) => s.select)
   const interiorMode = useStore((s) => s.interiorMode)
   const roofHidden = useStore((s) => s.roofHidden)
+  const setBmwAnchors = useStore((s) => s.setBmwAnchors)
 
   const prevColors = useRef<Record<PartId, string>>({
     seat_driver: '', seat_passenger: '', steering: '', dashboard: '',
@@ -34,6 +35,7 @@ export default function BmwM4() {
     glassMeshes,
     interiorMeshes,
     partMaterials,
+    anchors,
   } = useMemo(() => {
     const cloned = scene.clone(true)
 
@@ -87,7 +89,12 @@ export default function BmwM4() {
 
       // shadow 策略：BMW 模型 mesh 数量多，为避免低端设备卡顿，统一关闭实时阴影
       // 车身仍保留环境光 + 环境贴图反射，视觉上不会太平
-      const isRoof = roofNodeNames.has(obj.name) || roofNodeNames.has(nodeName)
+      // 车顶判定：roof_carbon（碳纤维车顶板）+ roofline_csl（车顶线）及其所有子 mesh
+      // 用前缀匹配更稳（子节点名形如 M4xNME_roof_carbon_M4xNME_Carbon1.002_0）
+      const isRoof =
+        roofNodeNames.has(obj.name) ||
+        roofNodeNames.has(nodeName) ||
+        nodeName.startsWith('M4xNME_roof')
       const isGlass = mats.some((m) => isGlassMat(m.name))
       const partId = partIdMap[obj.name] || partIdMap[nodeName]
 
@@ -126,6 +133,90 @@ export default function BmwM4() {
       }
     })
 
+    // ---- 去顶扩展：把「完全位于车顶区」的 mesh 也并入 roofMeshes ----
+    // 车顶并不只有 roof_carbon / roofline：内饰顶棚(interior_csl)、车顶内衬等
+    // 往往也是独立 mesh，且整体位于顶部。这里用包围盒判断：minY 高于车顶区阈值 → 整体在顶部 → 一并去除。
+    cloned.updateMatrixWorld(true)
+    let roofTopY = 0
+    roofMeshes.forEach((m) => {
+      const b = new THREE.Box3().setFromObject(m)
+      if (!b.isEmpty()) roofTopY = Math.max(roofTopY, b.max.y)
+    })
+    const roofZoneY = roofTopY - 0.2 // 顶部 20cm 以内视为车顶区
+    const roofZoneAdded: string[] = []
+    if (roofTopY > 0) {
+      cloned.traverse((o) => {
+        if (!(o instanceof THREE.Mesh) || roofMeshes.has(o)) return
+        const b = new THREE.Box3().setFromObject(o)
+        if (b.isEmpty()) return
+        if (b.min.y >= roofZoneY) {
+          roofMeshes.add(o)
+          roofZoneAdded.push(o.name)
+        }
+      })
+    }
+
+    // ---- 计算驾驶位相机锚点（归一化坐标系内） ----
+    // 车头朝向沿车身纵轴（较长轴），用前/后风挡判定正负，视线严格沿中线朝前。
+    const findByPrefix = (prefix: string): THREE.Object3D | null => {
+      let found: THREE.Object3D | null = null
+      cloned.traverse((o) => {
+        if (!found && o.name.startsWith(prefix)) found = o
+      })
+      return found
+    }
+    let anchors: { eye: [number, number, number]; look: [number, number, number] } | null = null
+    const seatObj = findByPrefix('M4xNME_seat_L') // 左舵：驾驶位在左
+    const wsObj = findByPrefix('M4xNME_windshield')
+    const fbObj = findByPrefix('M4xNME_backlight')
+    if (seatObj && wsObj) {
+      const sb = new THREE.Box3().setFromObject(seatObj)
+      const wb = new THREE.Box3().setFromObject(wsObj)
+      const sc = sb.getCenter(new THREE.Vector3())
+      const wc = wb.getCenter(new THREE.Vector3())
+      // 车头朝向：取车身较长轴作为纵轴，用「前风挡 vs 后风挡」判定正负方向，
+      // 这样视线严格沿车身中线朝前，不受座椅左右偏移影响。
+      const overall = new THREE.Box3().setFromObject(cloned)
+      const osize = overall.getSize(new THREE.Vector3())
+      let fwd: THREE.Vector3
+      if (osize.z >= osize.x) {
+        const rearZ = fbObj ? new THREE.Box3().setFromObject(fbObj).getCenter(new THREE.Vector3()).z : sc.z - 1
+        fwd = new THREE.Vector3(0, 0, Math.sign(wc.z - rearZ) || 1)
+      } else {
+        const rearX = fbObj ? new THREE.Box3().setFromObject(fbObj).getCenter(new THREE.Vector3()).x : sc.x - 1
+        fwd = new THREE.Vector3(Math.sign(wc.x - rearX) || 1, 0, 0)
+      }
+      const eye = sc.clone()
+      eye.y = sb.max.y - 0.1 // 眼位贴近头枕顶部下方
+      const look = eye.clone().addScaledVector(fwd, 6)
+      look.y = eye.y - 0.25 // 略微俯视仪表台/前方路面
+      anchors = {
+        eye: [eye.x, eye.y, eye.z],
+        look: [look.x, look.y, look.z],
+      }
+    }
+
+    // ---- 调试：输出顶部 mesh 几何高度，确认车顶到底由哪些 mesh 构成 ----
+    if (typeof window !== 'undefined') {
+      const geoTop: { name: string; maxY: number }[] = []
+      cloned.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return
+        const b = new THREE.Box3().setFromObject(o)
+        if (!b.isEmpty()) geoTop.push({ name: o.name, maxY: +b.max.y.toFixed(2) })
+      })
+      geoTop.sort((a, b) => b.maxY - a.maxY)
+      const roofNames = [...roofMeshes].map((m) => m.name)
+      ;(window as unknown as Record<string, unknown>).__bmwDebug = {
+        overallMaxY: geoTop[0]?.maxY ?? 0,
+        roofTopY,
+        roofZoneY,
+        roofZoneAdded,
+        top: geoTop.slice(0, 16),
+        roof: roofNames,
+        anchors,
+      }
+    }
+
     return {
       normalized: cloned,
       paintMats,
@@ -133,8 +224,15 @@ export default function BmwM4() {
       glassMeshes,
       interiorMeshes,
       partMaterials,
+      anchors,
     }
   }, [scene])
+
+  // 把驾驶位锚点发布到全局 store，供相机控制器使用
+  useEffect(() => {
+    setBmwAnchors(anchors)
+    return () => setBmwAnchors(null)
+  }, [anchors, setBmwAnchors])
 
   // 增量更新颜色：只更新变化了的部件材质
   useEffect(() => {
@@ -184,6 +282,10 @@ export default function BmwM4() {
     roofMeshes.forEach((mesh) => { mesh.visible = !topOpen })
     // 玻璃仅在「隐藏车顶」开关时隐藏；内饰模式下保留半透明玻璃，从敞篷口看进去更自然
     glassMeshes.forEach((mesh) => { mesh.visible = !roofHidden })
+    if (typeof window !== 'undefined') {
+      const w = window as unknown as Record<string, unknown>
+      w.__bmwRoofVisible = [...roofMeshes].map((m) => ({ name: m.name, visible: m.visible }))
+    }
   }, [roofHidden, interiorMode, roofMeshes, glassMeshes])
 
   // 内饰件按需显示：外观模式隐藏内部细节以提升性能；内饰模式显示

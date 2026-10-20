@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# 本地工作区/预览产物
+.workbuddy
+pv
+shots
+shots2
+preview
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
