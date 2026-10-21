@@ -225,7 +225,18 @@ function DriverLook() {
       tYaw.current = clampNum((yawDeg * Math.PI) / 180, -YAW_LIMIT, YAW_LIMIT)
       tPitch.current = clampNum((pitchDeg * Math.PI) / 180, -PITCH_LIMIT, PITCH_LIMIT)
     }
-  }, [])
+    // 调试钩子：一次性把相机摆到指定位姿（绕过阻尼，供录制/截图逐帧控制用）
+    w.__camSet = (px: number, py: number, pz: number, tx: number, ty: number, tz: number, fov?: number) => {
+      w.__freeCam = true
+      const cam = camera as THREE.PerspectiveCamera
+      cam.position.set(px, py, pz)
+      if (fov) {
+        cam.fov = fov
+        cam.updateProjectionMatrix()
+      }
+      cam.lookAt(tx, ty, tz)
+    }
+  }, [camera])
 
   useEffect(() => {
     if (!active) return
