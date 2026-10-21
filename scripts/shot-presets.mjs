@@ -56,14 +56,28 @@ await page.locator('.landing').waitFor({ state: 'detached' }).catch(() => {})
 await page.waitForFunction(() => !document.body.innerText.includes('加载中'), { timeout: 180000, polling: 400 })
 await page.waitForTimeout(2500)
 
-for (const preset of ['沉稳商务', '运动红黑']) {
+const PRESETS_TO_SHOOT = [
+  ['business', '沉稳商务'],
+  ['sport', '运动红黑'],
+  ['fresh', '青春气息'],
+]
+
+for (const [key, preset] of PRESETS_TO_SHOOT) {
   await page.locator(`button:has-text("${preset}")`).click()
   await page.waitForTimeout(1800)
-  await shot(`preset-${preset === '沉稳商务' ? 'business' : 'sport'}-ext`)
+  await shot(`preset-${key}-ext`)
 }
+
+await page.locator('button:has-text("青春气息")').click()
+await page.waitForTimeout(600)
+await page.click('button:has-text("内饰")')
+await page.waitForTimeout(4500)
+await shot('preset-fresh-int')
 
 await page.locator('button:has-text("运动红黑")').click()
 await page.waitForTimeout(600)
+await page.click('button:has-text("外观")')
+await page.waitForTimeout(2500)
 await page.click('button:has-text("内饰")')
 await page.waitForTimeout(4500)
 await shot('preset-sport-int')

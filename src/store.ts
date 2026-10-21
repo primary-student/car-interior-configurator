@@ -33,6 +33,8 @@ export const PALETTE = [
   { name: '钛灰', value: '#8a8d91' },
   { name: '碳纤维', value: '#2b2f33' },
   { name: '原木色', value: '#a9784b' },
+  { name: '奶油白', value: '#f6efe2' },
+  { name: '薄荷绿', value: '#8fd6bd' },
 ]
 
 export const PAINT_PALETTE = [
@@ -45,6 +47,8 @@ export const PAINT_PALETTE = [
   { name: '墨绿', value: '#1e4433' },
   { name: '香槟金', value: '#c2a878' },
   { name: '水泥灰', value: '#6f7276' },
+  { name: '奶油白', value: '#f6efe2' },
+  { name: '薄荷绿', value: '#8fd6bd' },
 ]
 
 const DEFAULT_COLORS: Record<PartId, string> = {
@@ -77,6 +81,15 @@ export const PRESETS: { name: string; colors: Record<PartId, string> }[] = [
       seat_driver: '#d0021b', seat_passenger: '#d0021b', steering: '#1a1a1c',
       dashboard: '#d0021b', door_left: '#d0021b', door_right: '#d0021b',
       console: '#1a1a1c', screen_frame: '#1a1a1c', body_paint: '#d0021b',
+    },
+  },
+  {
+    // 青春气息：薄荷绿 + 奶油白双色，浅色打底、绿色撞色点缀，方向盘留黑压边
+    name: '青春气息',
+    colors: {
+      seat_driver: '#f6efe2', seat_passenger: '#f6efe2', steering: '#1a1a1c',
+      dashboard: '#f6efe2', door_left: '#8fd6bd', door_right: '#8fd6bd',
+      console: '#8fd6bd', screen_frame: '#1a1a1c', body_paint: '#8fd6bd',
     },
   },
 ]
