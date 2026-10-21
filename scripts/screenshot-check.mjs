@@ -23,19 +23,19 @@ await shot('check-prog-roof', async () => {
 })
 
 await shot('check-glb-exterior', async () => {
-  await page.click('button:has-text("轿车（GLB）")')
+  await page.click('button:has-text("轿车")')
   await page.waitForTimeout(1500)
 })
 
 await shot('check-glb-interior', async () => {
-  await page.click('button:has-text("轿车（GLB）")')
+  await page.click('button:has-text("轿车")')
   await page.waitForTimeout(1000)
   await page.click('button:has-text("内饰")')
   await page.waitForTimeout(1500)
 })
 
 await shot('check-glb-interior-red', async () => {
-  await page.click('button:has-text("轿车（GLB）")')
+  await page.click('button:has-text("轿车")')
   await page.waitForTimeout(1000)
   await page.click('button:has-text("内饰")')
   await page.waitForTimeout(1000)

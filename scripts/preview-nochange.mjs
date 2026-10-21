@@ -197,7 +197,7 @@ check('BMW 内饰 · 选中中控台无变化', bmwIntBase, await canvasShot('bm
 
 // ---- 4. GLB 轿车：点击零变化 + 换色回归 ----
 log('concept')
-await page.click('button:has-text("轿车（GLB）")')
+await page.click('button:has-text("轿车")')
 await page.waitForTimeout(4500)
 const conceptBase = await canvasShot('concept-base')
 await page.click('.part:has-text("车身漆面")')

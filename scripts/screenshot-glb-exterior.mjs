@@ -8,7 +8,7 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
 await page.goto('http://localhost:5173/', { waitUntil: 'networkidle', timeout: 30000 })
 await page.waitForTimeout(3000)
 
-await page.click('button:has-text("轿车（GLB）")')
+await page.click('button:has-text("轿车")')
 await page.waitForTimeout(2500)
 
 await page.screenshot({ path: './public/check-glb-exterior-fixed.png', fullPage: false })

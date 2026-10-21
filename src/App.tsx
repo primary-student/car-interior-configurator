@@ -77,7 +77,7 @@ function Scene() {
       </mesh>
 
       {view === 'concept' ? (
-        <ModelErrorBoundary label="轿车（GLB）模型加载失败，请检查网络">
+        <ModelErrorBoundary label="轿车模型加载失败，请检查网络">
           <Suspense fallback={null}>
             <ConceptCar />
             {/* GLB 轿车是单 mesh 空壳，内饰模式叠加程序化座舱 */}
@@ -325,7 +325,7 @@ const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
       <div className="section">
         <h2>车型</h2>
         <div className="presets">
-          <button className={view === 'concept' ? 'view-active' : ''} onClick={() => setView('concept')}>轿车（GLB）</button>
+          <button className={view === 'concept' ? 'view-active' : ''} onClick={() => setView('concept')}>轿车</button>
           <button className={view === 'bmw' ? 'view-active' : ''} onClick={() => setView('bmw')}>BMW M4</button>
         </div>
         {!bmwReady && <p className="hint bmw-hint">BMW 模型加载中…（约 2 MB，之后走浏览器缓存）</p>}

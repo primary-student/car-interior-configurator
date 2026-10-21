@@ -16,12 +16,12 @@ async function shot(name, action) {
 }
 
 await shot('glb-exterior', async () => {
-  await page.click('button:has-text("轿车（GLB）")')
+  await page.click('button:has-text("轿车")')
   await page.waitForTimeout(1500)
 })
 
 await shot('glb-interior', async () => {
-  await page.click('button:has-text("轿车（GLB）")')
+  await page.click('button:has-text("轿车")')
   await page.waitForTimeout(1500)
   await page.click('button:has-text("内饰")')
   await page.waitForTimeout(1500)
