@@ -36,12 +36,15 @@ PLAN = [
     ("ext_side", "v1-ext_side.png",        4.30, 1.02, 1.10, 0.42, 4, 4, True),
     ("biz",      "v1-ext_biz.png",         3.60, 1.02, 1.10, 0.25, 5, 5, True),
     ("sport",    "v1-ext_sport.png",       3.40, 1.10, 1.03, 0.25, 6, 6, True),
-    ("fresh",    "v1-ext_fresh.png",       3.60, 1.01, 1.09, 0.25, 6, 0, True),
+    # 第6句跨 sport→fresh：收尾后留 0.5s 余韵
+    ("fresh",    "v1-ext_fresh.png",       4.10, 1.01, 1.09, 0.25, 6, 0, True),
     ("int_fwd",  "v2-int_fwd.png",         3.80, 1.16, 1.24, 0.72, 7, 7, True),
     ("int_left", "v2-int_left.png",        2.80, 1.24, 1.18, 0.72, 8, 8, True),
-    ("int_right","v2-int_right.png",       2.80, 1.18, 1.24, 0.72, 8, 0, True),
+    # 第8句跨 int_left→int_right：同上
+    ("int_right","v2-int_right.png",       3.30, 1.18, 1.24, 0.72, 8, 0, True),
     ("int_dash", "v1-int_dash.png",        2.60, 1.22, 1.28, 0.70, 9, 9, True),
-    ("int_wood", "v1-int_dash_wood.png",   3.20, 1.28, 1.20, 0.70, 9, 0, True),
+    # 第9句跨 int_dash→int_wood：同上
+    ("int_wood", "v1-int_dash_wood.png",   3.70, 1.28, 1.20, 0.70, 9, 0, True),
     ("endcard",  None,                     4.80, 1.00, 1.03, 0.50, 0, 10, False),
 ]
 PANEL_W = 300
