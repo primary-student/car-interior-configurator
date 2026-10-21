@@ -117,6 +117,8 @@ export default function BmwM4() {
     const roofMeshes = new Set<THREE.Mesh>()
     const glassMeshes = new Set<THREE.Mesh>()
     const interiorMeshes = new Set<THREE.Mesh>()
+    /** mesh -> 所属部件，用于拆开被多个部件共用的材质 */
+    const meshPart = new Map<THREE.Mesh, PartId>()
     const partMaterials: Record<PartId, Set<THREE.Material>> = {
       seat_driver: new Set(),
       seat_passenger: new Set(),
@@ -184,6 +186,7 @@ export default function BmwM4() {
       // 内饰部件材质 + mesh
       if (partId) {
         interiorMeshes.add(obj)
+        meshPart.set(obj, partId)
         mats.forEach((m) => {
           if (
             m.name.includes('Leather') ||
@@ -195,6 +198,44 @@ export default function BmwM4() {
           }
         })
       }
+    })
+
+    // ---- 拆开共用材质 ----
+    // GLB 里不同节点会复用同一个材质实例（例如方向盘皮革与门板上饰板同为一种 Leather），
+    // 直接按材质改色会让「改门板」连带改到方向盘。这里按 mesh 归属把共用材质拆成每部件一份，
+    // 之后每个部件只改自己那份，互不影响。
+    const matOwners = new Map<THREE.Material, Set<PartId>>()
+    meshPart.forEach((pid, mesh) => {
+      const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      list.forEach((m) => {
+        if (!m) return
+        let owners = matOwners.get(m)
+        if (!owners) {
+          owners = new Set<PartId>()
+          matOwners.set(m, owners)
+        }
+        owners.add(pid)
+      })
+    })
+    let sharedMaterialCount = 0
+    matOwners.forEach((owners, shared) => {
+      if (owners.size < 2) return
+      sharedMaterialCount++
+      const perPart = new Map<PartId, THREE.Material>()
+      owners.forEach((pid) => perPart.set(pid, shared.clone()))
+      meshPart.forEach((pid, mesh) => {
+        const own = perPart.get(pid)
+        if (!own) return
+        if (Array.isArray(mesh.material)) {
+          mesh.material = mesh.material.map((m) => (m === shared ? own : m))
+        } else if (mesh.material === shared) {
+          mesh.material = own
+        }
+      })
+      owners.forEach((pid) => {
+        const set = partMaterials[pid]
+        if (set.delete(shared)) set.add(perPart.get(pid)!)
+      })
     })
 
     // ---- 去顶扩展：把「完全位于车顶区」的 mesh 也并入 roofMeshes ----
@@ -332,6 +373,7 @@ export default function BmwM4() {
         top: geoTop.slice(0, 16),
         roof: roofNames,
         anchors,
+        sharedMaterialCount,
       }
     }
 

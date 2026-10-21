@@ -28,6 +28,7 @@ export const PALETTE = [
   { name: '琥珀棕', value: '#6b4226' },
   { name: '米白', value: '#e8e0d0' },
   { name: '酒红', value: '#7a2020' },
+  { name: '大红', value: '#d0021b' },
   { name: '深蓝', value: '#1f3a5f' },
   { name: '钛灰', value: '#8a8d91' },
   { name: '碳纤维', value: '#2b2f33' },
@@ -40,6 +41,7 @@ export const PAINT_PALETTE = [
   { name: '钛银', value: '#a8adb3' },
   { name: '深海蓝', value: '#1e3d6e' },
   { name: '烈焰红', value: '#a01c1c' },
+  { name: '大红', value: '#d0021b' },
   { name: '墨绿', value: '#1e4433' },
   { name: '香槟金', value: '#c2a878' },
   { name: '水泥灰', value: '#6f7276' },
@@ -68,11 +70,13 @@ export const PRESETS: { name: string; colors: Record<PartId, string> }[] = [
     },
   },
   {
+    // 大红为主、黑色为辅：车身 + 座椅 + 门板 + 仪表台都是大红，
+    // 方向盘 / 中控台 / 屏幕边框留黑做压边，避免整舱一片红显得廉价
     name: '运动红黑',
     colors: {
-      seat_driver: '#7a2020', seat_passenger: '#7a2020', steering: '#1a1a1c',
-      dashboard: '#1a1a1c', door_left: '#2b2f33', door_right: '#2b2f33',
-      console: '#1a1a1c', screen_frame: '#2b2f33', body_paint: '#141518',
+      seat_driver: '#d0021b', seat_passenger: '#d0021b', steering: '#1a1a1c',
+      dashboard: '#d0021b', door_left: '#d0021b', door_right: '#d0021b',
+      console: '#1a1a1c', screen_frame: '#1a1a1c', body_paint: '#d0021b',
     },
   },
 ]
