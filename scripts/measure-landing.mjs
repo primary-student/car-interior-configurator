@@ -34,6 +34,7 @@ await new Promise((r) => server.listen(PORT, '127.0.0.1', r))
 
 const browser = await chromium.launch({ executablePath: EXE, args: ['--use-gl=angle', '--use-angle=swiftshader'] })
 const VIEWS = [
+  { name: 'fhd', w: 1920, h: 1080 },
   { name: 'desktop', w: 1440, h: 900 },
   { name: 'laptop', w: 1280, h: 800 },
   { name: 'mobile', w: 390, h: 844 },
