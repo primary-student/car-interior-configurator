@@ -15,6 +15,8 @@ const PORT = 8961
 const W = 1920
 const H = 1080
 const TAG = process.argv[2] || 'v1'
+/** 只重截某几张：node capture.mjs v1 landing */
+const ONLY = process.argv[3] || ''
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
@@ -103,6 +105,12 @@ console.log('goto landing')
 await page.goto(`http://127.0.0.1:${PORT}${PREFIX}/`, { waitUntil: 'load' })
 await page.waitForTimeout(2200)
 await shot('landing')
+if (ONLY === 'landing') {
+  await browser.close()
+  server.close()
+  console.log('landing only ->', OUT)
+  process.exit(0)
+}
 
 console.log('enter configurator')
 await page.locator('.landing-start').click()

@@ -29,18 +29,20 @@ os.makedirs(OUT, exist_ok=True)
 
 # name, 图片, 时长, 起始缩放, 结束缩放, 垂直锚点(0上 1下), 字幕编号, 台词编号(0=不新起), 是否带右侧面板
 PLAN = [
-    ("landing",  "v1-landing.png",         5.40, 1.00, 1.07, 0.50, 1, 1, False),
-    ("ext1",     "v1-ext_default.png",     4.40, 1.10, 1.02, 0.25, 2, 2, True),
-    ("ext2",     "v1-ext_rear.png",        4.20, 1.01, 1.09, 0.30, 3, 3, True),
-    ("biz",      "v1-ext_biz.png",         3.60, 1.02, 1.10, 0.25, 4, 4, True),
-    ("sport",    "v1-ext_sport.png",       3.40, 1.10, 1.03, 0.25, 5, 5, True),
-    ("fresh",    "v1-ext_fresh.png",       3.60, 1.01, 1.09, 0.25, 5, 0, True),
-    ("int_fwd",  "v2-int_fwd.png",         3.80, 1.16, 1.24, 0.72, 6, 6, True),
-    ("int_left", "v2-int_left.png",        2.80, 1.24, 1.18, 0.72, 7, 7, True),
-    ("int_right","v2-int_right.png",       2.80, 1.18, 1.24, 0.72, 7, 0, True),
-    ("int_dash", "v1-int_dash.png",        2.60, 1.22, 1.28, 0.70, 8, 8, True),
-    ("int_wood", "v1-int_dash_wood.png",   3.20, 1.28, 1.20, 0.70, 8, 0, True),
-    ("endcard",  None,                     5.00, 1.00, 1.03, 0.50, 0, 9, False),
+    ("landing",  "v1-landing.png",         5.30, 1.00, 1.07, 0.50, 0, 1, False),
+    # 主张句独占一个外观镜头：先看车，再说"你的座驾，你来定风格"
+    ("ext_front","v1-ext_default.png",     5.30, 1.10, 1.02, 0.25, 2, 2, True),
+    ("ext_rear", "v1-ext_rear.png",        4.40, 1.01, 1.09, 0.30, 3, 3, True),
+    ("ext_side", "v1-ext_side.png",        4.30, 1.02, 1.10, 0.42, 4, 4, True),
+    ("biz",      "v1-ext_biz.png",         3.60, 1.02, 1.10, 0.25, 5, 5, True),
+    ("sport",    "v1-ext_sport.png",       3.40, 1.10, 1.03, 0.25, 6, 6, True),
+    ("fresh",    "v1-ext_fresh.png",       3.60, 1.01, 1.09, 0.25, 6, 0, True),
+    ("int_fwd",  "v2-int_fwd.png",         3.80, 1.16, 1.24, 0.72, 7, 7, True),
+    ("int_left", "v2-int_left.png",        2.80, 1.24, 1.18, 0.72, 8, 8, True),
+    ("int_right","v2-int_right.png",       2.80, 1.18, 1.24, 0.72, 8, 0, True),
+    ("int_dash", "v1-int_dash.png",        2.60, 1.22, 1.28, 0.70, 9, 9, True),
+    ("int_wood", "v1-int_dash_wood.png",   3.20, 1.28, 1.20, 0.70, 9, 0, True),
+    ("endcard",  None,                     4.80, 1.00, 1.03, 0.50, 0, 10, False),
 ]
 PANEL_W = 300
 CANVAS_W = W - PANEL_W
@@ -113,8 +115,8 @@ cap_idx = sorted({p[6] for p in PLAN if p[6]})
 for k in cap_idx:
     inputs += ["-i", os.path.join(OVER, f"cap_{k}.png")]
 
-# 跨语义的接缝（外观↔内饰、实拍↔片尾卡）用黑场过渡，避免两张图叠成鬼影
-SEAM_FADE_BLACK = {"ext1", "int_fwd", "endcard"}
+# 跨语义的接缝（开屏↔实拍、外观↔内饰、实拍↔片尾卡）用黑场过渡，避免两张图叠成鬼影
+SEAM_FADE_BLACK = {"ext_front", "int_fwd", "endcard"}
 
 fc = []
 prev = "[0:v]"

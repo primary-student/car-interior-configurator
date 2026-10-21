@@ -10,8 +10,11 @@ const EXE = 'C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1
 const OUT = path.resolve('video/overlay')
 fs.mkdirSync(OUT, { recursive: true })
 
+// 索引 = build.py PLAN 里的字幕编号。
+// 1 号留空：落地页画面本身就印着这句文案，再叠一层字幕是重复。
 const CAPTIONS = [
-  '外面给世界看，里面给自己',
+  '',
+  '你的座驾 · 你来定风格',
   '内秀 NEIXIU · 3D 汽车内饰定制',
   '拖拽转身 · 滚轮靠近',
   '四套搭配方案，一键切换',
@@ -55,9 +58,10 @@ const endHTML = `<!doctype html><html><head><meta charset="utf-8"><style>
 
 const browser = await chromium.launch({ executablePath: EXE, headless: true, args: ['--no-sandbox'] })
 
-// 字幕：700x48 CSS → dsf 2 出 1400x96 像素
-const capPage = await browser.newPage({ viewport: { width: 760, height: 60 }, deviceScaleFactor: 2 })
+// 字幕：760x60 CSS → dsf 2。主张句较长，画布加宽到 1200 避免截断
+const capPage = await browser.newPage({ viewport: { width: 1200, height: 60 }, deviceScaleFactor: 2 })
 for (let i = 0; i < CAPTIONS.length; i++) {
+  if (!CAPTIONS[i]) { console.log(`cap_${i + 1}: 空位，跳过`); continue }
   await capPage.setContent(capHTML(CAPTIONS[i]))
   await capPage.waitForTimeout(120)
   const el = capPage.locator('.cap')

@@ -274,16 +274,18 @@ body {
   padding: 0 24px;
 }
 
+/* 尺寸以 900px 视口高为基准，同时用 vh 上限随高度收缩，
+   保证不同屏高下内容块都稳定在约 60vh */
 .landing-overline {
-  font-size: 11px;
+  font-size: min(13px, 1.45vh);
   letter-spacing: 0.42em;
   text-transform: uppercase;
   color: #8a7f72;
-  margin-bottom: 34px;
+  margin-bottom: min(44px, 4.89vh);
 }
 
 .landing-name {
-  font-size: clamp(58px, 11vw, 104px);
+  font-size: clamp(76px, 14vw, min(138px, 15.33vh));
   font-weight: 300;
   line-height: 1;
   letter-spacing: 0.1em;
@@ -293,8 +295,8 @@ body {
 }
 
 .landing-en {
-  margin-top: 20px;
-  font-size: 13px;
+  margin-top: min(26px, 2.89vh);
+  font-size: min(16px, 1.78vh);
   letter-spacing: 0.62em;
   /* 末尾字距会让整行视觉偏左，补回一半 */
   text-indent: 0.62em;
@@ -303,27 +305,27 @@ body {
 
 .landing-rule {
   display: block;
-  width: 76px;
+  width: min(96px, 10.67vh);
   height: 1px;
-  margin: 34px 0 0;
+  margin: min(46px, 5.11vh) 0 0;
   background: linear-gradient(90deg, transparent, rgba(176, 131, 86, 0.75), transparent);
 }
 
 .landing-desc {
-  margin-top: 28px;
-  font-size: 17px;
-  letter-spacing: 0.14em;
+  margin-top: min(38px, 4.22vh);
+  font-size: min(22px, 2.44vh);
+  letter-spacing: 0.16em;
   color: #cdc7c0;
 }
 
 .landing-start {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 52px;
-  padding: 15px 34px;
+  gap: min(16px, 1.78vh);
+  margin-top: min(68px, 7.56vh);
+  padding: min(19px, 2.11vh) min(44px, 4.89vh);
   font-family: inherit;
-  font-size: 14px;
+  font-size: min(17px, 1.89vh);
   letter-spacing: 0.3em;
   text-indent: 0.3em;
   color: #efe9e2;
@@ -340,7 +342,7 @@ body {
 .landing-start:active { transform: translateY(1px); }
 .landing-start:focus-visible { outline: 2px solid #b08356; outline-offset: 3px; }
 .landing-start-arrow {
-  font-size: 15px;
+  font-size: min(18px, 2vh);
   text-indent: 0;
   letter-spacing: 0;
   transition: transform 0.22s ease;
@@ -348,8 +350,8 @@ body {
 .landing-start:hover .landing-start-arrow { transform: translateX(4px); }
 
 .landing-foot {
-  margin-top: 34px;
-  font-size: 11px;
+  margin-top: min(46px, 5.11vh);
+  font-size: min(13px, 1.44vh);
   letter-spacing: 0.2em;
   color: #6b6862;
 }
@@ -431,14 +433,14 @@ body {
   }
   .credit { margin-top: 18px; font-size: 10px; }
 
-  /* 落地页压缩行距，保证小屏一屏内看全 */
-  .landing-overline { font-size: 10px; letter-spacing: 0.28em; margin-bottom: 26px; }
-  .landing-name { font-size: clamp(52px, 16vw, 72px); }
-  .landing-en { margin-top: 16px; font-size: 11px; letter-spacing: 0.48em; text-indent: 0.48em; }
-  .landing-rule { margin-top: 26px; }
-  .landing-desc { margin-top: 22px; font-size: 14px; letter-spacing: 0.1em; }
-  .landing-start { margin-top: 40px; padding: 13px 26px; font-size: 13px; }
-  .landing-foot { margin-top: 26px; font-size: 10px; letter-spacing: 0.14em; }
+  /* 落地页：小屏同样保持内容约占屏高六成（以 844px 高为基准） */
+  .landing-overline { font-size: min(13.5px, 1.6vh); letter-spacing: 0.28em; margin-bottom: min(42px, 5vh); }
+  .landing-name { font-size: clamp(72px, 24vw, min(112px, 13.3vh)); }
+  .landing-en { margin-top: min(25px, 2.9vh); font-size: min(17px, 2vh); letter-spacing: 0.48em; text-indent: 0.48em; }
+  .landing-rule { width: min(98px, 11.6vh); margin-top: min(42px, 5vh); }
+  .landing-desc { margin-top: min(35px, 4.1vh); font-size: min(19px, 2.25vh); letter-spacing: 0.1em; }
+  .landing-start { margin-top: min(61px, 7.2vh); padding: min(20px, 2.4vh) min(39px, 4.6vh); font-size: min(18px, 2.1vh); }
+  .landing-foot { margin-top: min(42px, 5vh); font-size: min(15px, 1.75vh); letter-spacing: 0.14em; }
   .brand-mark { left: 12px; top: 10px; padding: 6px 8px; }
   .brand-cn { font-size: 14px; }
 }
