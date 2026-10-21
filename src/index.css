@@ -46,15 +46,18 @@ body {
   50% { opacity: 1; transform: scale(1.15); }
 }
 
-/* R3F Stats 面板定位 */
+/* R3F Stats 面板定位（挪到左下角，左上角留给品牌标） */
 .stats {
   position: absolute !important;
-  top: 8px !important;
+  bottom: 8px !important;
   left: 8px !important;
+  z-index: 1 !important;
+  /* 纯读数面板，不能吃掉画布/品牌标的指针事件 */
+  pointer-events: none !important;
 }
 .stats canvas {
   transform: scale(0.75);
-  transform-origin: top left;
+  transform-origin: bottom left;
 }
 
 /* ---- 右侧配置面板 ---- */
@@ -200,7 +203,192 @@ body {
 .swatch:hover { transform: scale(1.1); }
 .swatch.active { border-color: #3fa9f5; transform: scale(1.1); }
 
+/* ---- 品牌标（配置器内左上角，点击返回首页） ---- */
+.brand-mark {
+  position: absolute;
+  left: 26px;
+  top: 22px;
+  z-index: 90;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.brand-mark:hover { background: rgba(255, 255, 255, 0.06); }
+.brand-cn {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: #ece7e1;
+}
+.brand-en {
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: #8a8d91;
+}
+
+/* ---- 首页落地页 ---- */
+.landing {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 40%, #1c1f23 0%, #101214 58%, #08090a 100%);
+  transition: opacity 0.58s ease, transform 0.58s ease, filter 0.58s ease;
+}
+.landing-exit {
+  opacity: 0;
+  transform: scale(1.035);
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+/* 中心极淡的暖光，避免纯黑底发闷 */
+.landing-glow {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: min(78vw, 900px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(176, 131, 86, 0.13) 0%, rgba(176, 131, 86, 0) 62%);
+  pointer-events: none;
+}
+
+.landing-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.landing-overline {
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: #8a7f72;
+  margin-bottom: 34px;
+}
+
+.landing-name {
+  font-size: clamp(58px, 11vw, 104px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  /* 末尾字距让整行视觉偏左，补回一半 */
+  text-indent: 0.1em;
+  color: #f2ece5;
+}
+
+.landing-en {
+  margin-top: 20px;
+  font-size: 13px;
+  letter-spacing: 0.62em;
+  /* 末尾字距会让整行视觉偏左，补回一半 */
+  text-indent: 0.62em;
+  color: #b08356;
+}
+
+.landing-rule {
+  display: block;
+  width: 76px;
+  height: 1px;
+  margin: 34px 0 0;
+  background: linear-gradient(90deg, transparent, rgba(176, 131, 86, 0.75), transparent);
+}
+
+.landing-desc {
+  margin-top: 28px;
+  font-size: 17px;
+  letter-spacing: 0.14em;
+  color: #cdc7c0;
+}
+
+.landing-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 52px;
+  padding: 15px 34px;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: #efe9e2;
+  background: rgba(176, 131, 86, 0.08);
+  border: 1px solid rgba(176, 131, 86, 0.5);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+}
+.landing-start:hover {
+  background: rgba(176, 131, 86, 0.2);
+  border-color: rgba(196, 154, 108, 0.95);
+}
+.landing-start:active { transform: translateY(1px); }
+.landing-start:focus-visible { outline: 2px solid #b08356; outline-offset: 3px; }
+.landing-start-arrow {
+  font-size: 15px;
+  text-indent: 0;
+  letter-spacing: 0;
+  transition: transform 0.22s ease;
+}
+.landing-start:hover .landing-start-arrow { transform: translateX(4px); }
+
+.landing-foot {
+  margin-top: 34px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: #6b6862;
+}
+
+.landing-credit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #3f4145;
+}
+
+/* 入场：逐层淡入上浮 */
+@keyframes landing-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.landing-overline,
+.landing-name,
+.landing-en,
+.landing-rule,
+.landing-desc,
+.landing-start,
+.landing-foot {
+  animation: landing-rise 0.85s cubic-bezier(0.22, 0.68, 0.32, 1) both;
+}
+.landing-overline { animation-delay: 0.05s; }
+.landing-name { animation-delay: 0.16s; }
+.landing-en { animation-delay: 0.3s; }
+.landing-rule { animation-delay: 0.4s; }
+.landing-desc { animation-delay: 0.48s; }
+.landing-start { animation-delay: 0.6s; }
+.landing-foot { animation-delay: 0.72s; }
+
 /* ---- 移动端适配 ---- */
+
 @media (max-width: 768px) {
   .panel-outer {
     position: absolute;
@@ -242,6 +430,29 @@ body {
     height: 28px;
   }
   .credit { margin-top: 18px; font-size: 10px; }
+
+  /* 落地页压缩行距，保证小屏一屏内看全 */
+  .landing-overline { font-size: 10px; letter-spacing: 0.28em; margin-bottom: 26px; }
+  .landing-name { font-size: clamp(52px, 16vw, 72px); }
+  .landing-en { margin-top: 16px; font-size: 11px; letter-spacing: 0.48em; text-indent: 0.48em; }
+  .landing-rule { margin-top: 26px; }
+  .landing-desc { margin-top: 22px; font-size: 14px; letter-spacing: 0.1em; }
+  .landing-start { margin-top: 40px; padding: 13px 26px; font-size: 13px; }
+  .landing-foot { margin-top: 26px; font-size: 10px; letter-spacing: 0.14em; }
+  .brand-mark { left: 12px; top: 10px; padding: 6px 8px; }
+  .brand-cn { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-overline,
+  .landing-name,
+  .landing-en,
+  .landing-rule,
+  .landing-desc,
+  .landing-start,
+  .landing-foot { animation: none; }
+  .landing { transition-duration: 0.01s; }
+  .landing-exit { filter: none; }
 }
 
 @media (max-width: 380px) {

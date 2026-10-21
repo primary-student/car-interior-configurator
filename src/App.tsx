@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three-stdlib'
 import { peek } from 'suspend-react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { Cockpit } from './components/Cockpit'
+import { Landing } from './components/Landing'
 import { ModelErrorBoundary } from './components/ModelErrorBoundary'
 import { PALETTE, PAINT_PALETTE, PART_NAMES, PRESETS, useStore, type PartId } from './store'
 
@@ -48,7 +49,8 @@ function Scene() {
         onDecline={() => setDpr(1)}
         onIncline={() => setDpr(Math.min(window.devicePixelRatio, 1.5))}
       />
-      <Stats className="stats" />
+      {/* 帧率 HUD 仅开发环境可见，生产构建里不出现（会压住左上角品牌标） */}
+      {import.meta.env.DEV && <Stats className="stats" />}
 
       {/* 灯光：简化到核心三盏，降低每帧光照开销 */}
       <ambientLight intensity={0.55} />
@@ -424,10 +426,35 @@ export default function App() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [panelOpen, setPanelOpen] = useState(!isMobile)
   const [bmwReady, setBmwReady] = useState(false)
+  // entered: 3D 场景是否已挂载（点「开始定制」后为 true）
+  // showLanding: 落地页是否仍在 DOM 中（淡出动画结束后移除）
+  const [entered, setEntered] = useState(false)
+  const [showLanding, setShowLanding] = useState(true)
+  const setInteriorMode = useStore((s) => s.setInteriorMode)
+  const setView = useStore((s) => s.setView)
 
   useEffect(() => {
     setPanelOpen(!isMobile)
   }, [isMobile])
+
+  // 落地页淡出结束后再从 DOM 移除，避免退出瞬间露出空白
+  useEffect(() => {
+    if (!entered) return
+    const id = window.setTimeout(() => setShowLanding(false), 620)
+    return () => window.clearTimeout(id)
+  }, [entered])
+
+  const enterConfigurator = () => {
+    setEntered(true)
+    // 回到中性状态：外观视角 + BMW，避免上次退出时停在内饰小范围视角
+    setInteriorMode(false)
+    setView('bmw')
+  }
+
+  const backToLanding = () => {
+    setEntered(false)
+    setShowLanding(true)
+  }
 
   // 轮询 drei 缓存：BMW 模型后台下载完成后，面板提示由“下载中”变为可切换。
   // 用 peek 直接查全局缓存，无需重复发起请求。
@@ -447,10 +474,10 @@ export default function App() {
   }, [bmwReady])
 
   return (
-    <div className="app">
+    <div className={`app${entered ? ' app-entered' : ''}`}>
       <div className="viewport">
-        <Scene />
-        <SceneLoading />
+        {entered && <Scene />}
+        {entered && <SceneLoading />}
       </div>
       <button
         className="panel-toggle"
@@ -463,6 +490,15 @@ export default function App() {
       <div className={`panel-outer ${panelOpen ? 'panel-open' : 'panel-closed'} ${isMobile ? 'panel-mobile' : ''}`}>
         <Panel bmwReady={bmwReady} />
       </div>
+
+      {entered && (
+        <button className="brand-mark" onClick={backToLanding} aria-label="返回首页">
+          <span className="brand-cn">内秀</span>
+          <span className="brand-en">NEIXIU</span>
+        </button>
+      )}
+
+      {showLanding && <Landing exiting={entered} onStart={enterConfigurator} />}
     </div>
   )
 }

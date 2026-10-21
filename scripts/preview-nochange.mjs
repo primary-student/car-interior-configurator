@@ -143,6 +143,11 @@ function check(label, a, b) {
 log('goto')
 await page.goto(`http://127.0.0.1:${PORT}${PREFIX}/`, { waitUntil: 'load', timeout: 60000 })
 
+// 首页现在是落地页，先进配置器
+await page.locator('.landing-start').click({ timeout: 60000 })
+await page.locator('.landing').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {})
+log('entered configurator')
+
 // ---- 1. 首页默认 BMW ----
 const sedanBtn = await page.locator('button:has-text("轿车（程序化）")').count()
 assert('车型列表已隐藏「轿车（程序化）」', sedanBtn === 0, `匹配到 ${sedanBtn} 个按钮`)
