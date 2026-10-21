@@ -325,8 +325,8 @@ const Panel = memo(function Panel({ bmwReady }: { bmwReady: boolean }) {
       <div className="section">
         <h2>车型</h2>
         <div className="presets">
-          <button className={view === 'concept' ? 'view-active' : ''} onClick={() => setView('concept')}>轿车</button>
           <button className={view === 'bmw' ? 'view-active' : ''} onClick={() => setView('bmw')}>BMW M4</button>
+          <button className={view === 'concept' ? 'view-active' : ''} onClick={() => setView('concept')}>轿车</button>
         </div>
         {!bmwReady && <p className="hint bmw-hint">BMW 模型加载中…（约 2 MB，之后走浏览器缓存）</p>}
       </div>
