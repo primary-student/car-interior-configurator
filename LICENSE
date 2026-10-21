@@ -1,143 +1,78 @@
-# PolyForm Noncommercial License 1.0.0
+内秀 NEIXIU · 3D 汽车内饰定制
+专有许可协议（All Rights Reserved）
+Copyright (c) 2026 primary-student. All rights reserved.
 
-<https://polyformproject.org/licenses/noncommercial/1.0.0>
+本仓库不适用任何开源许可证。除本文件第一条明确授予的权利外，作者保留全部
+权利。未获授权的使用不构成默示许可。
 
-Required Notice: Copyright (c) 2026 primary-student
-<https://github.com/primary-student/car-interior-configurator>
+────────────────────────────────────────
+一、无需申请即可使用的情形
+────────────────────────────────────────
 
-## Acceptance
+1. 阅读、学习本仓库的源码、文档与设计。
+2. 克隆到本地，在个人设备上运行、调试，用于个人学习与研究。
+3. 在本地进行修改，但修改后的版本不得对外分发，也不得部署为任何可访问的
+   服务。
+4. 在文章、课程、答辩或技术分享中引用少量代码片段或截图，须同时注明作者
+   与本仓库地址。
 
-In order to get any license under these terms, you must agree to them as both
-strict obligations and conditions to all your licenses.
+────────────────────────────────────────
+二、禁止的行为（须事先取得书面授权）
+────────────────────────────────────────
 
-## Copyright License
+1. 商业使用：包括但不限于销售本作品或其衍生作品、作为付费产品或付费服务的
+   一部分、嵌入企业内部生产系统、用于承接外包与投标、用于引流或广告变现。
+   判断标准是是否直接或间接产生商业利益，而非是否收费。
+2. 公开部署：将本作品或其衍生作品部署到任何可被第三方访问的环境，包括公网
+   网站、小程序、App、云函数、演示链接。
+3. 再分发：以任何形式复制、发布、镜像、打包上传本仓库的全部或实质部分，包
+   括 fork 后公开。
+4. 提交竞赛与评选：将本作品或其衍生作品（含改色、换肤、替换模型、部分删改
+   后的版本）提交至任何竞赛、黑客松、作品征集、评选、招标或展示活动。
+5. 训练模型：将本仓库源码用于训练或微调任何机器学习模型、代码生成模型或生
+   成式模型。
+6. 抹除标识：删除、遮蔽或修改本文件、源码中的版权声明与作者署名。
 
-The licensor grants you a copyright license for the software to do everything
-you might do with the software that would otherwise infringe the licensor's
-copyright in it for any permitted purpose. However, you may only distribute the
-software according to [Distribution
-License](#distribution-license) and make changes or new works based on the
-software according to [Changes and New Works
-License](#changes-and-new-works-license).
-
-## Distribution License
-
-The licensor grants you an additional copyright license to distribute copies of
-the software. Your license to distribute covers distributing the software with
-changes and new works permitted by [Changes and New Works
-License](#changes-and-new-works-license).
-
-## Notices
-
-You must ensure that anyone who gets a copy of any part of the software from you
-also gets a copy of these terms or the URL for them above, as well as copies of
-any plain-text lines beginning with `Required Notice:` that the licensor
-provided with the software. For example:
-
-> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
-
-## Changes and New Works License
-
-The licensor grants you an additional copyright license to make changes and new
-works based on the software for any permitted purpose.
-
-## Patent License
-
-The licensor grants you a patent license for the software that covers patent
-claims the licensor can license, or becomes able to license, that you would
-infringe by using the software.
-
-## Noncommercial Purposes
-
-Any noncommercial purpose is a permitted purpose.
-
-## Personal Uses
-
-Personal use for research, experiment, and testing for the benefit of public
-knowledge, personal study, private entertainment, hobby projects, amateur
-pursuits, or religious observance, without any anticipated commercial
-application, is use for a permitted purpose.
-
-## Noncommercial Organizations
-
-Use by any charitable organization, educational institution, public research
-organization, public safety or health organization, environmental protection
-organization, or government institution is use for a permitted purpose
-regardless of the source of funding or obligations resulting from the funding.
-
-## Fair Use
-
-You may have "fair use" rights for the software under the law. These terms do
-not limit them.
-
-## No Other Rights
-
-These terms do not allow you to sublicense or transfer any of your licenses to
-anyone else, or prevent the licensor from granting licenses to anyone else.
-These terms do not imply any other licenses.
-
-## Patent Defense
-
-If you make any written claim that the software infringes or contributes to
-infringement of any patent, your patent license for the software granted under
-these terms ends immediately. If your company makes such a claim, your patent
-license ends immediately for work on behalf of your company.
-
-## Violations
-
-The first time you are notified in writing that you have violated any of these
-terms, or done anything with the software not covered by your licenses, your
-licenses can nonetheless continue if you come into full compliance with these
-terms, and take practical steps to correct past violations, within 32 days of
-receiving notice. Otherwise, all your licenses end immediately.
-
-## No Liability
-
-***As far as the law allows, the software comes as is, without any warranty or
-condition, and the licensor will not be liable to you for any damages arising
-out of these terms or the use or nature of the software, under any kind of legal
-claim.***
-
-## Definitions
-
-The **licensor** is the individual or entity offering these terms, and the
-**software** is the software the licensor makes available under these terms.
-
-**You** refers to the individual or entity agreeing to these terms.
-
-**Your company** is any legal entity, sole proprietorship, or other kind of
-organization that you work for, plus all organizations that have control over,
-are under the control of, or are under common control with that organization.
-**Control** means ownership of substantially all the assets of an entity, or the
-power to direct its management and policies by vote, contract, or otherwise.
-Control can be direct or indirect.
-
-**Your licenses** are all the licenses granted to you for the software under
-these terms.
-
-**Use** means anything you do with the software requiring one of your licenses.
-
----
-
-## 中文说明（说明性，不改变上述条款）
-
-本作品（「内秀 NEIXIU · 3D 汽车内饰定制」，下称「本作品」）以 PolyForm
-Noncommercial License 1.0.0 授权，要点如下：
-
-1. **可以**：阅读源码、学习、本地运行、修改、fork 用于个人研究、教学与实验。
-2. **不可以**：任何商业用途，包括但不限于销售、付费服务、商业产品集成、企业
-   内部生产环境部署。
-3. **不可以**：将本作品或其衍生作品（含改色、换皮、换模型后的版本）提交至任何
-   竞赛、评选、招标或作品征集活动。
-4. **转载**：必须保留 LICENSE 文件、上述 `Required Notice` 及本声明，并注明原
-   作者与原仓库地址。
-5. **侵权处理**：违反上述任一条款即自动终止一切授权，作者保留追究与向托管平台
-   提出版权投诉（DMCA）的权利。
-
-如需商业授权，请通过仓库 Issue 联系作者。
-
-## 第三方素材
+────────────────────────────────────────
+三、第三方素材（不受本协议约束）
+────────────────────────────────────────
 
 - BMW M4 CSL 3D 模型：CC BY 4.0，© AshishB2000 / BMW M4 CSL Configurator。
-  该模型不适用上述许可，遵循其原有 CC BY 4.0 条款。
+  该模型沿用其原有 CC BY 4.0 条款，可依该协议使用，与本文件无关。
 - Low Poly Sedan 3D 模型：Quaternius，CC0。
+
+────────────────────────────────────────
+四、授权终止与救济
+────────────────────────────────────────
+
+1. 违反上述任一条款，本协议授予的全部权利立即自动终止，无需另行通知。
+2. 授权终止后继续使用，构成对作者著作权的侵犯。
+3. 作者保留向代码托管平台、应用商店、竞赛主办方提出版权投诉（含 GitHub
+   DMCA Takedown）以及追究法律责任的权利。
+4. 作者保留随时变更授权条款的权利，已发生的授权不因此溯及失效。
+
+────────────────────────────────────────
+五、免责
+────────────────────────────────────────
+
+本作品按"现状"提供，不附带任何明示或默示的担保。在法律允许的最大范围内，
+作者不对因使用本作品产生的任何直接或间接损失承担责任。
+
+────────────────────────────────────────
+六、商业授权
+────────────────────────────────────────
+
+如需商业使用、公开部署或其他未列明的授权，请通过本仓库 Issue 联系作者，
+说明用途、范围与期限。
+
+────────────────────────────────────────
+English Summary (non-binding)
+────────────────────────────────────────
+
+This repository is NOT open source. All rights are reserved by the copyright
+holder. You may read, study, and run the code locally for personal learning
+only. You may NOT use it commercially, deploy it publicly, redistribute it,
+submit it to any competition or award, use it to train machine learning
+models, or remove this notice. Any violation terminates all rights
+immediately. For commercial licensing, contact the author via GitHub Issues.
+Third-party assets remain under their original licenses (CC BY 4.0 / CC0).
