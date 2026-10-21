@@ -29,3 +29,6 @@ preview
 *.njsproj
 *.sln
 *.sw?
+
+# 内部资料，不入库
+deck/演示项目档案_*.md
